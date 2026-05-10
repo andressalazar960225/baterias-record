@@ -1,0 +1,529 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Baterías Récord — Sistema de Servicios</title>
+<link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet" />
+<script src="https://cdnjs.cloudflare.com/ajax/libs/luxon/3.4.4/luxon.min.js"></script>
+<style>
+  :root {
+    --bg: #0a0a0f;
+    --surface: #12121a;
+    --surface2: #1a1a26;
+    --border: #2a2a3d;
+    --accent: #f5c518;
+    --accent2: #e8a000;
+    --text: #f0f0f5;
+    --muted: #6b6b8a;
+    --danger: #ef4444;
+    --green: #22c55e;
+    --blue: #3b82f6;
+    --orange: #f97316;
+    --purple: #a855f7;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { background: var(--bg); color: var(--text); font-family: 'DM Sans', sans-serif; min-height: 100vh; }
+
+  /* HEADER */
+  .header {
+    background: var(--surface);
+    border-bottom: 1px solid var(--border);
+    padding: 0 2rem;
+    display: flex; align-items: center; justify-content: space-between;
+    height: 64px; position: sticky; top: 0; z-index: 100;
+  }
+  .logo { display: flex; align-items: center; gap: 12px; }
+  .logo-icon { width: 36px; height: 36px; background: var(--accent); border-radius: 8px; display: flex; align-items: center; justify-content: center; font-size: 1.2rem; }
+  .logo-text { font-family: 'Syne', sans-serif; font-weight: 800; font-size: 1.1rem; color: var(--text); }
+  .logo-sub { font-size: 0.65rem; color: var(--muted); letter-spacing: 0.15em; text-transform: uppercase; }
+  .btn-new { background: var(--accent); color: #000; border: none; padding: 9px 20px; border-radius: 8px; font-family: 'Syne', sans-serif; font-weight: 700; font-size: 0.85rem; cursor: pointer; transition: all .15s; }
+  .btn-new:hover { background: var(--accent2); transform: translateY(-1px); }
+
+  /* STATS */
+  .stats { display: flex; gap: 1rem; padding: 1.5rem 2rem; flex-wrap: wrap; }
+  .stat-card { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 1rem 1.5rem; flex: 1; min-width: 120px; }
+  .stat-num { font-family: 'Syne', sans-serif; font-size: 2rem; font-weight: 800; line-height: 1; }
+  .stat-label { font-size: 0.7rem; color: var(--muted); text-transform: uppercase; letter-spacing: 0.1em; margin-top: 4px; }
+
+  /* TOOLBAR */
+  .toolbar { padding: 0 2rem 1rem; display: flex; gap: 0.75rem; flex-wrap: wrap; align-items: center; }
+  .search-box { position: relative; flex: 1; min-width: 220px; max-width: 340px; }
+  .search-box input { width: 100%; background: var(--surface); border: 1px solid var(--border); border-radius: 8px; padding: 9px 12px 9px 36px; color: var(--text); font-size: 0.88rem; outline: none; transition: border .15s; font-family: 'DM Sans', sans-serif; }
+  .search-box input:focus { border-color: var(--accent); }
+  .search-icon { position: absolute; left: 11px; top: 50%; transform: translateY(-50%); color: var(--muted); font-size: 0.9rem; pointer-events: none; }
+  select.filter { background: var(--surface); border: 1px solid var(--border); border-radius: 8px; padding: 9px 12px; color: var(--text); font-size: 0.85rem; outline: none; cursor: pointer; font-family: 'DM Sans', sans-serif; }
+  select.filter:focus { border-color: var(--accent); }
+
+  /* TABS */
+  .tabs { display: flex; gap: 4px; padding: 0 2rem 1rem; }
+  .tab { padding: 7px 18px; border-radius: 7px; border: none; cursor: pointer; font-weight: 600; font-size: 0.85rem; font-family: 'DM Sans', sans-serif; transition: all .15s; }
+  .tab.active { background: var(--accent); color: #000; }
+  .tab.inactive { background: transparent; color: var(--muted); }
+  .tab.inactive:hover { color: var(--text); background: var(--surface); }
+
+  /* TABLE */
+  .table-wrap { padding: 0 2rem 2rem; overflow-x: auto; }
+  table { width: 100%; border-collapse: collapse; font-size: 0.875rem; }
+  thead tr { border-bottom: 1px solid var(--border); }
+  th { text-align: left; padding: 10px 12px; color: var(--muted); font-size: 0.7rem; text-transform: uppercase; letter-spacing: 0.08em; font-weight: 700; }
+  tbody tr { border-bottom: 1px solid #16161f; cursor: pointer; transition: background .1s; }
+  tbody tr:hover { background: var(--surface); }
+  td { padding: 11px 12px; vertical-align: middle; }
+
+  /* BADGES */
+  .badge { display: inline-block; padding: 3px 10px; border-radius: 999px; font-size: 0.7rem; font-weight: 700; letter-spacing: 0.05em; white-space: nowrap; }
+  .badge-recibido { background: #1e3a5f; color: #60a5fa; }
+  .badge-proceso { background: #3b2a05; color: #fbbf24; }
+  .badge-listo { background: #052e16; color: #4ade80; }
+  .badge-entregado { background: #1e1b4b; color: #a78bfa; }
+  .badge-cancelado { background: #2d0a0a; color: #f87171; }
+
+  .priority-dot { display: inline-block; width: 8px; height: 8px; border-radius: 50%; margin-right: 6px; }
+
+  /* MODAL */
+  .overlay { position: fixed; inset: 0; background: rgba(0,0,0,.75); z-index: 200; display: flex; align-items: center; justify-content: center; padding: 1rem; }
+  .modal { background: var(--surface); border: 1px solid var(--border); border-radius: 16px; width: 100%; max-width: 640px; max-height: 92vh; overflow-y: auto; padding: 2rem; }
+  .modal h2 { font-family: 'Syne', sans-serif; font-weight: 800; font-size: 1.2rem; margin-bottom: 1.5rem; color: var(--text); }
+
+  /* FORM */
+  .form-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 0 1rem; }
+  .field { margin-bottom: 1rem; }
+  .field label { display: block; font-size: 0.7rem; color: var(--muted); margin-bottom: 4px; text-transform: uppercase; letter-spacing: 0.08em; }
+  .field input, .field select, .field textarea {
+    width: 100%; background: var(--surface2); border: 1px solid var(--border);
+    border-radius: 7px; padding: 9px 11px; color: var(--text); font-size: 0.88rem;
+    outline: none; font-family: 'DM Sans', sans-serif; transition: border .15s;
+  }
+  .field input:focus, .field select:focus, .field textarea:focus { border-color: var(--accent); }
+  .field textarea { resize: vertical; min-height: 72px; }
+  .full { grid-column: 1 / -1; }
+
+  .modal-footer { display: flex; gap: 0.75rem; justify-content: flex-end; margin-top: 1rem; }
+  .btn-cancel { background: var(--surface2); color: var(--muted); border: 1px solid var(--border); padding: 8px 20px; border-radius: 7px; cursor: pointer; font-size: 0.88rem; font-family: 'DM Sans', sans-serif; }
+  .btn-save { background: var(--accent); color: #000; border: none; padding: 8px 22px; border-radius: 7px; cursor: pointer; font-weight: 700; font-size: 0.88rem; font-family: 'Syne', sans-serif; }
+  .btn-save:hover { background: var(--accent2); }
+  .btn-danger { background: #2d0a0a; color: #f87171; border: 1px solid #7f1d1d; padding: 8px 16px; border-radius: 7px; cursor: pointer; font-size: 0.85rem; font-family: 'DM Sans', sans-serif; }
+
+  /* DETAIL */
+  .detail-header { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 1.5rem; flex-wrap: wrap; gap: 0.75rem; }
+  .detail-id { font-size: 0.72rem; color: var(--muted); margin-bottom: 3px; font-family: monospace; }
+  .detail-name { font-family: 'Syne', sans-serif; font-weight: 800; font-size: 1.25rem; }
+  .detail-phone { color: var(--muted); font-size: 0.85rem; margin-top: 2px; }
+  .info-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 0.75rem; margin-bottom: 1.25rem; }
+  .info-card { background: var(--surface2); border-radius: 8px; padding: 10px 12px; }
+  .info-card .k { font-size: 0.68rem; color: var(--muted); text-transform: uppercase; letter-spacing: 0.08em; margin-bottom: 3px; }
+  .info-card .v { font-size: 0.9rem; font-weight: 600; color: var(--text); }
+  .obs-box { background: var(--surface2); border-radius: 8px; padding: 12px; margin-bottom: 1.25rem; }
+  .obs-box .k { font-size: 0.68rem; color: var(--muted); text-transform: uppercase; letter-spacing: 0.08em; margin-bottom: 6px; }
+  .obs-box p { color: #c0c0d0; font-size: 0.88rem; line-height: 1.6; }
+  .reports-section { margin-bottom: 1.25rem; }
+  .reports-title { font-size: 0.68rem; color: var(--muted); text-transform: uppercase; letter-spacing: 0.08em; margin-bottom: 8px; }
+  .report-item { background: var(--surface2); border-left: 3px solid var(--accent); border-radius: 0 8px 8px 0; padding: 9px 12px; margin-bottom: 6px; font-size: 0.84rem; color: #c0c0d0; line-height: 1.5; }
+  .report-add { display: flex; gap: 8px; margin-top: 8px; }
+  .report-add input { flex: 1; background: var(--surface2); border: 1px solid var(--border); border-radius: 7px; padding: 8px 11px; color: var(--text); font-size: 0.85rem; outline: none; font-family: 'DM Sans', sans-serif; }
+  .report-add input:focus { border-color: var(--accent); }
+  .btn-add-rep { background: var(--accent); color: #000; border: none; padding: 8px 14px; border-radius: 7px; cursor: pointer; font-weight: 700; font-size: 0.82rem; white-space: nowrap; font-family: 'Syne', sans-serif; }
+
+  /* LOADING / EMPTY */
+  .loading { text-align: center; padding: 3rem; color: var(--muted); }
+  .spinner { width: 32px; height: 32px; border: 3px solid var(--border); border-top-color: var(--accent); border-radius: 50%; animation: spin .7s linear infinite; margin: 0 auto 1rem; }
+  @keyframes spin { to { transform: rotate(360deg); } }
+  .empty { text-align: center; padding: 3rem; color: var(--muted); font-size: 0.9rem; }
+
+  .count-info { padding: 0 2rem 0.5rem; color: var(--muted); font-size: 0.78rem; }
+
+  @media (max-width: 600px) {
+    .stats { padding: 1rem; gap: 0.5rem; }
+    .toolbar, .tabs, .table-wrap, .count-info { padding-left: 1rem; padding-right: 1rem; }
+    .header { padding: 0 1rem; }
+    .form-grid { grid-template-columns: 1fr; }
+    .info-grid { grid-template-columns: 1fr; }
+    .logo-text { font-size: 0.95rem; }
+  }
+</style>
+</head>
+<body>
+
+<!-- HEADER -->
+<div class="header">
+  <div class="logo">
+    <div class="logo-icon">⚡</div>
+    <div>
+      <div class="logo-text">Baterías Récord</div>
+      <div class="logo-sub">Sistema de Servicios</div>
+    </div>
+  </div>
+  <button class="btn-new" onclick="openForm()">+ Nueva Orden</button>
+</div>
+
+<!-- STATS -->
+<div class="stats" id="stats">
+  <div class="stat-card"><div class="stat-num" id="st-total" style="color:var(--accent)">—</div><div class="stat-label">Total</div></div>
+  <div class="stat-card"><div class="stat-num" id="st-recibido" style="color:#60a5fa">—</div><div class="stat-label">Recibidos</div></div>
+  <div class="stat-card"><div class="stat-num" id="st-proceso" style="color:#fbbf24">—</div><div class="stat-label">En Proceso</div></div>
+  <div class="stat-card"><div class="stat-num" id="st-listo" style="color:#4ade80">—</div><div class="stat-label">Listos</div></div>
+  <div class="stat-card"><div class="stat-num" id="st-urgente" style="color:#ef4444">—</div><div class="stat-label">Urgentes</div></div>
+</div>
+
+<!-- TABS -->
+<div class="tabs">
+  <button class="tab active" id="tab-activos" onclick="setTab('activos')">Activos</button>
+  <button class="tab inactive" id="tab-historial" onclick="setTab('historial')">Historial</button>
+</div>
+
+<!-- TOOLBAR -->
+<div class="toolbar">
+  <div class="search-box">
+    <span class="search-icon">🔍</span>
+    <input type="text" id="search" placeholder="Buscar cliente, marca, serie, ID…" oninput="renderTable()" />
+  </div>
+  <select class="filter" id="filter-status" onchange="renderTable()">
+    <option value="">Todos los estados</option>
+    <option>Recibido</option><option>En proceso</option>
+    <option>Listo</option><option>Entregado</option><option>Cancelado</option>
+  </select>
+  <select class="filter" id="filter-service" onchange="renderTable()">
+    <option value="">Todos los servicios</option>
+    <option>Garantía</option><option>Reparación</option><option>Revisión</option>
+    <option>Carga</option><option>Diagnóstico</option><option>Venta</option>
+  </select>
+</div>
+
+<div class="count-info" id="count-info"></div>
+
+<!-- TABLE -->
+<div class="table-wrap">
+  <table>
+    <thead>
+      <tr>
+        <th>ID</th><th>Cliente</th><th>Servicio</th>
+        <th>Marca / Modelo</th><th>Estado</th>
+        <th>Prioridad</th><th>Actualizado</th><th></th>
+      </tr>
+    </thead>
+    <tbody id="tbody"></tbody>
+  </table>
+  <div id="loading" class="loading"><div class="spinner"></div>Cargando órdenes…</div>
+  <div id="empty" class="empty" style="display:none">Sin órdenes encontradas.</div>
+</div>
+
+<!-- MODAL FORM -->
+<div class="overlay" id="modal-form" style="display:none" onclick="closeForm(event)">
+  <div class="modal" onclick="event.stopPropagation()">
+    <h2 id="form-title">Nueva Orden de Servicio</h2>
+    <div class="form-grid">
+      <div class="field"><label>Cliente *</label><input id="f-client" placeholder="Nombre completo" /></div>
+      <div class="field"><label>Teléfono</label><input id="f-phone" placeholder="09XXXXXXXX" /></div>
+      <div class="field"><label>Marca</label><input id="f-brand" placeholder="Bosch, Optima…" /></div>
+      <div class="field"><label>Modelo</label><input id="f-model" placeholder="S4 013, RedTop…" /></div>
+      <div class="field"><label>N° Serie / Etiqueta</label><input id="f-serial" placeholder="Código de la batería" /></div>
+      <div class="field"><label>Tipo de servicio *</label>
+        <select id="f-service">
+          <option>Garantía</option><option>Reparación</option><option selected>Revisión</option>
+          <option>Carga</option><option>Diagnóstico</option><option>Venta</option>
+        </select>
+      </div>
+      <div class="field"><label>Estado</label>
+        <select id="f-status">
+          <option>Recibido</option><option>En proceso</option>
+          <option>Listo</option><option>Entregado</option><option>Cancelado</option>
+        </select>
+      </div>
+      <div class="field"><label>Prioridad</label>
+        <select id="f-priority">
+          <option>Normal</option><option>Urgente</option><option>Crítico</option>
+        </select>
+      </div>
+      <div class="field full"><label>Observaciones</label>
+        <textarea id="f-obs" placeholder="Descripción del problema, condición de la batería…"></textarea>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn-cancel" onclick="closeForm()">Cancelar</button>
+      <button class="btn-save" onclick="saveOrder()">Guardar Orden</button>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL DETAIL -->
+<div class="overlay" id="modal-detail" style="display:none" onclick="closeDetail(event)">
+  <div class="modal" onclick="event.stopPropagation()">
+    <div class="detail-header">
+      <div>
+        <div class="detail-id" id="d-id"></div>
+        <div class="detail-name" id="d-name"></div>
+        <div class="detail-phone" id="d-phone"></div>
+      </div>
+      <div style="display:flex;gap:6px;flex-wrap:wrap;justify-content:flex-end" id="d-badges"></div>
+    </div>
+    <div class="info-grid" id="d-grid"></div>
+    <div class="obs-box">
+      <div class="k">Observaciones</div>
+      <p id="d-obs"></p>
+    </div>
+    <div class="reports-section">
+      <div class="reports-title" id="d-rep-title">Reportes / Historial (0)</div>
+      <div id="d-reports"></div>
+      <div class="report-add">
+        <input id="rep-input" placeholder="Agregar nota técnica o reporte…" onkeydown="if(event.key==='Enter')addReport()" />
+        <button class="btn-add-rep" onclick="addReport()">+ Agregar</button>
+      </div>
+    </div>
+    <div class="modal-footer" style="justify-content:space-between">
+      <button class="btn-danger" onclick="deleteOrder()">Eliminar</button>
+      <div style="display:flex;gap:0.75rem">
+        <button class="btn-cancel" onclick="closeDetail()">Cerrar</button>
+        <button class="btn-save" onclick="editFromDetail()">Editar</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+// ── CONFIG SUPABASE ─────────────────────────────────────────────────────────
+const SUPA_URL = "https://aavvptuojuxrlqwbbnbu.supabase.co";
+const SUPA_KEY = "sb_publishable_83BuqtayE922CnSjM27Bmg_anpKra4f";
+const HEADERS  = { "Content-Type":"application/json", "apikey": SUPA_KEY, "Authorization": "Bearer " + SUPA_KEY };
+
+// ── STATE ───────────────────────────────────────────────────────────────────
+let allOrders   = [];
+let currentTab  = "activos";
+let editingId   = null;
+let viewingId   = null;
+
+// ── SUPABASE HELPERS ────────────────────────────────────────────────────────
+async function dbFetch(path, opts={}) {
+  const r = await fetch(SUPA_URL + "/rest/v1/" + path, { headers: HEADERS, ...opts });
+  if (!r.ok) { const e = await r.text(); throw new Error(e); }
+  return r.status === 204 ? null : r.json();
+}
+
+async function loadOrders() {
+  document.getElementById("loading").style.display = "block";
+  document.getElementById("tbody").innerHTML = "";
+  document.getElementById("empty").style.display = "none";
+  try {
+    allOrders = await dbFetch("orders?order=created.desc");
+    renderStats();
+    renderTable();
+  } catch(e) {
+    document.getElementById("loading").innerHTML = `<div style="color:#ef4444">Error al cargar: ${e.message}</div>`;
+  }
+}
+
+async function insertOrder(data) {
+  return dbFetch("orders", { method:"POST", headers:{...HEADERS,"Prefer":"return=representation"}, body: JSON.stringify(data) });
+}
+
+async function updateOrder(id, data) {
+  return dbFetch(`orders?id=eq.${id}`, { method:"PATCH", headers:{...HEADERS,"Prefer":"return=representation"}, body: JSON.stringify(data) });
+}
+
+async function removeOrder(id) {
+  return dbFetch(`orders?id=eq.${id}`, { method:"DELETE" });
+}
+
+// ── UTILS ───────────────────────────────────────────────────────────────────
+const fmt = iso => iso ? new Date(iso).toLocaleString("es-EC",{dateStyle:"short",timeStyle:"short"}) : "—";
+const nowISO = () => new Date().toISOString();
+
+const BADGE_CLASS = { "Recibido":"badge-recibido","En proceso":"badge-proceso","Listo":"badge-listo","Entregado":"badge-entregado","Cancelado":"badge-cancelado" };
+const PRIORITY_COLOR = { Normal:"#6b7280", Urgente:"#f59e0b", Crítico:"#ef4444" };
+
+function badge(status) {
+  return `<span class="badge ${BADGE_CLASS[status]||''}">${status}</span>`;
+}
+
+// ── STATS ───────────────────────────────────────────────────────────────────
+function renderStats() {
+  document.getElementById("st-total").textContent    = allOrders.length;
+  document.getElementById("st-recibido").textContent = allOrders.filter(o=>o.status==="Recibido").length;
+  document.getElementById("st-proceso").textContent  = allOrders.filter(o=>o.status==="En proceso").length;
+  document.getElementById("st-listo").textContent    = allOrders.filter(o=>o.status==="Listo").length;
+  document.getElementById("st-urgente").textContent  = allOrders.filter(o=>o.priority==="Urgente"||o.priority==="Crítico").length;
+}
+
+// ── TABLE ───────────────────────────────────────────────────────────────────
+function setTab(t) {
+  currentTab = t;
+  document.getElementById("tab-activos").className  = "tab " + (t==="activos"?"active":"inactive");
+  document.getElementById("tab-historial").className = "tab " + (t==="historial"?"active":"inactive");
+  renderTable();
+}
+
+function renderTable() {
+  const q    = document.getElementById("search").value.toLowerCase();
+  const fSt  = document.getElementById("filter-status").value;
+  const fSrv = document.getElementById("filter-service").value;
+  const completed = o => o.status==="Entregado"||o.status==="Cancelado";
+  const pool = allOrders.filter(o => currentTab==="activos" ? !completed(o) : completed(o));
+
+  const filtered = pool.filter(o => {
+    const matchQ   = !q || [o.client,o.phone,o.brand,o.model,o.serial,String(o.id)].some(v=>(v||"").toLowerCase().includes(q));
+    const matchSt  = !fSt  || o.status===fSt;
+    const matchSrv = !fSrv || o.service===fSrv;
+    return matchQ && matchSt && matchSrv;
+  });
+
+  document.getElementById("loading").style.display = "none";
+  document.getElementById("count-info").textContent = `${filtered.length} orden(es) mostrada(s)`;
+
+  if (filtered.length === 0) {
+    document.getElementById("tbody").innerHTML = "";
+    document.getElementById("empty").style.display = "block";
+    return;
+  }
+  document.getElementById("empty").style.display = "none";
+
+  document.getElementById("tbody").innerHTML = filtered.map(o => `
+    <tr onclick="openDetail(${o.id})">
+      <td style="font-family:monospace;color:var(--muted);font-size:0.78rem">#${o.id}</td>
+      <td><div style="font-weight:600">${o.client||"—"}</div><div style="color:var(--muted);font-size:0.78rem">${o.phone||""}</div></td>
+      <td style="color:#93c5fd">${o.service||"—"}</td>
+      <td><div style="color:var(--text)">${o.brand||"—"}</div><div style="color:var(--muted);font-size:0.78rem">${o.model||""}</div></td>
+      <td>${badge(o.status)}</td>
+      <td><span style="color:${PRIORITY_COLOR[o.priority]||'#6b7280'};font-weight:700;font-size:0.8rem">● ${o.priority||"Normal"}</span></td>
+      <td style="color:var(--muted);font-size:0.8rem">${fmt(o.updated)}</td>
+      <td><button onclick="event.stopPropagation();openForm(${o.id})" style="background:var(--surface2);color:var(--muted);border:none;padding:5px 10px;border-radius:5px;cursor:pointer;font-size:0.78rem">Editar</button></td>
+    </tr>
+  `).join("");
+}
+
+// ── FORM ────────────────────────────────────────────────────────────────────
+function openForm(id=null) {
+  editingId = id;
+  document.getElementById("form-title").textContent = id ? "Editar Orden" : "Nueva Orden de Servicio";
+  if (id) {
+    const o = allOrders.find(x=>x.id===id);
+    if (!o) return;
+    document.getElementById("f-client").value  = o.client||"";
+    document.getElementById("f-phone").value   = o.phone||"";
+    document.getElementById("f-brand").value   = o.brand||"";
+    document.getElementById("f-model").value   = o.model||"";
+    document.getElementById("f-serial").value  = o.serial||"";
+    document.getElementById("f-service").value = o.service||"Revisión";
+    document.getElementById("f-status").value  = o.status||"Recibido";
+    document.getElementById("f-priority").value= o.priority||"Normal";
+    document.getElementById("f-obs").value     = o.observations||"";
+  } else {
+    ["f-client","f-phone","f-brand","f-model","f-serial","f-obs"].forEach(id=>document.getElementById(id).value="");
+    document.getElementById("f-service").value="Revisión";
+    document.getElementById("f-status").value="Recibido";
+    document.getElementById("f-priority").value="Normal";
+  }
+  document.getElementById("modal-detail").style.display = "none";
+  document.getElementById("modal-form").style.display   = "flex";
+}
+
+function closeForm(e) {
+  if (e && e.target !== document.getElementById("modal-form")) return;
+  document.getElementById("modal-form").style.display = "none";
+  editingId = null;
+}
+
+async function saveOrder() {
+  const client = document.getElementById("f-client").value.trim();
+  if (!client) { alert("El nombre del cliente es obligatorio."); return; }
+  const data = {
+    client, phone: document.getElementById("f-phone").value.trim(),
+    brand: document.getElementById("f-brand").value.trim(),
+    model: document.getElementById("f-model").value.trim(),
+    serial: document.getElementById("f-serial").value.trim(),
+    service: document.getElementById("f-service").value,
+    status: document.getElementById("f-status").value,
+    priority: document.getElementById("f-priority").value,
+    observations: document.getElementById("f-obs").value.trim(),
+    updated: nowISO(),
+  };
+  const btn = document.querySelector("#modal-form .btn-save");
+  btn.textContent = "Guardando…"; btn.disabled = true;
+  try {
+    if (editingId) {
+      await updateOrder(editingId, data);
+    } else {
+      data.created = nowISO();
+      data.reports = "[]";
+      await insertOrder(data);
+    }
+    document.getElementById("modal-form").style.display = "none";
+    await loadOrders();
+  } catch(e) {
+    alert("Error al guardar: " + e.message);
+  } finally {
+    btn.textContent = "Guardar Orden"; btn.disabled = false;
+  }
+}
+
+// ── DETAIL ──────────────────────────────────────────────────────────────────
+function openDetail(id) {
+  viewingId = id;
+  renderDetail();
+  document.getElementById("modal-detail").style.display = "flex";
+}
+
+function renderDetail() {
+  const o = allOrders.find(x=>x.id===viewingId);
+  if (!o) return;
+  document.getElementById("d-id").textContent    = `ORDEN #${o.id}`;
+  document.getElementById("d-name").textContent  = o.client||"—";
+  document.getElementById("d-phone").textContent = o.phone||"";
+  document.getElementById("d-badges").innerHTML  =
+    `${badge(o.status)} <span style="color:${PRIORITY_COLOR[o.priority]};font-weight:700;font-size:0.85rem">● ${o.priority}</span>`;
+  document.getElementById("d-grid").innerHTML = [
+    ["Servicio",o.service],["Marca",o.brand],["Modelo",o.model],
+    ["N° Serie",o.serial],["Recibido",fmt(o.created)],["Actualizado",fmt(o.updated)]
+  ].map(([k,v])=>`<div class="info-card"><div class="k">${k}</div><div class="v">${v||"—"}</div></div>`).join("");
+  document.getElementById("d-obs").textContent = o.observations||"Sin observaciones.";
+
+  let reports = [];
+  try { reports = JSON.parse(o.reports||"[]"); } catch {}
+  document.getElementById("d-rep-title").textContent = `Reportes / Historial (${reports.length})`;
+  document.getElementById("d-reports").innerHTML = reports.length
+    ? reports.map((r,i)=>`<div class="report-item"><span style="color:var(--muted);font-size:0.75rem">#${i+1} · </span>${r}</div>`).join("")
+    : `<div style="color:var(--muted);font-size:0.85rem;margin-bottom:8px">Sin reportes aún.</div>`;
+  document.getElementById("rep-input").value = "";
+}
+
+function closeDetail(e) {
+  if (e && e.target !== document.getElementById("modal-detail")) return;
+  document.getElementById("modal-detail").style.display = "none";
+  viewingId = null;
+}
+
+function editFromDetail() {
+  document.getElementById("modal-detail").style.display = "none";
+  openForm(viewingId);
+}
+
+async function addReport() {
+  const input = document.getElementById("rep-input");
+  const text  = input.value.trim();
+  if (!text || !viewingId) return;
+  const o = allOrders.find(x=>x.id===viewingId);
+  let reports = [];
+  try { reports = JSON.parse(o.reports||"[]"); } catch {}
+  const ts = new Date().toLocaleString("es-EC",{dateStyle:"short",timeStyle:"short"});
+  reports.push(`[${ts}] ${text}`);
+  try {
+    await updateOrder(viewingId, { reports: JSON.stringify(reports), updated: nowISO() });
+    await loadOrders();
+    renderDetail();
+  } catch(e) { alert("Error: " + e.message); }
+}
+
+async function deleteOrder() {
+  if (!confirm("¿Eliminar esta orden? Esta acción no se puede deshacer.")) return;
+  try {
+    await removeOrder(viewingId);
+    document.getElementById("modal-detail").style.display = "none";
+    viewingId = null;
+    await loadOrders();
+  } catch(e) { alert("Error: " + e.message); }
+}
+
+// ── INIT ────────────────────────────────────────────────────────────────────
+loadOrders();
+</script>
+</body>
+</html>

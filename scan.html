@@ -7,7 +7,7 @@
 <link href="https://fonts.googleapis.com/css2?family=Syne:wght@700;800&family=DM+Sans:wght@400;500;600&display=swap" rel="stylesheet"/>
 <style>
   *{box-sizing:border-box;margin:0;padding:0;}
-  body{background:#0a0a0f;color:#f0f0f5;font-family:'DM Sans',sans-serif;min-height:100vh;padding-bottom:3rem;}
+  body{background:#0a0a0f;color:#f0f0f5;font-family:'DM Sans',sans-serif;min-height:100vh;padding-bottom:4rem;}
   .header{background:#12121a;border-bottom:1px solid #2a2a3d;padding:14px 20px;display:flex;align-items:center;gap:10px;}
   .logo-icon{width:32px;height:32px;background:#f5c518;border-radius:7px;display:flex;align-items:center;justify-content:center;font-size:1.1rem;flex-shrink:0;}
   .logo-text{font-family:'Syne',sans-serif;font-weight:800;font-size:1rem;}
@@ -50,7 +50,7 @@
   .photos-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:1rem;}
   .photo-thumb{width:100%;aspect-ratio:1;object-fit:cover;border-radius:8px;border:1px solid #2a2a3d;cursor:pointer;}
   .photo-add{width:100%;aspect-ratio:1;border-radius:8px;border:2px dashed #2a2a3d;display:flex;flex-direction:column;align-items:center;justify-content:center;cursor:pointer;background:#1a1a26;color:#6b6b8a;font-size:0.75rem;gap:4px;transition:all .15s;}
-  .photo-add:hover{border-color:#f5c518;color:#f5c518;}
+  .photo-add:active{border-color:#f5c518;color:#f5c518;}
   .photo-add .icon{font-size:1.6rem;}
   .upload-progress{background:#1a1a26;border-radius:8px;padding:12px;text-align:center;color:#f5c518;font-size:0.85rem;margin-bottom:8px;display:none;}
   .progress-bar-wrap{background:#2a2a3d;border-radius:999px;height:6px;margin-top:8px;}
@@ -61,11 +61,24 @@
   .note-add{display:flex;flex-direction:column;gap:8px;}
   .note-add textarea{background:#1a1a26;border:1px solid #2a2a3d;border-radius:8px;padding:10px 12px;color:#f0f0f5;font-size:0.88rem;outline:none;font-family:'DM Sans',sans-serif;resize:vertical;min-height:80px;transition:border .15s;}
   .note-add textarea:focus{border-color:#f5c518;}
+
+  /* BUTTONS */
   .status-select{width:100%;background:#1a1a26;border:1px solid #2a2a3d;border-radius:8px;padding:11px 12px;color:#f0f0f5;font-size:0.9rem;outline:none;cursor:pointer;font-family:'DM Sans',sans-serif;margin-bottom:0.75rem;}
   .status-select:focus{border-color:#f5c518;}
-  .btn-primary{width:100%;background:#f5c518;color:#000;border:none;padding:12px;border-radius:9px;font-family:'Syne',sans-serif;font-weight:800;font-size:0.95rem;cursor:pointer;transition:all .15s;}
-  .btn-primary:hover{background:#e8a000;}
+  .btn-primary{width:100%;background:#f5c518;color:#000;border:none;padding:13px;border-radius:9px;font-family:'Syne',sans-serif;font-weight:800;font-size:0.95rem;cursor:pointer;transition:all .15s;display:flex;align-items:center;justify-content:center;gap:8px;}
+  .btn-primary:active{background:#e8a000;}
   .btn-primary:disabled{background:#2a2a3d;color:#6b6b8a;cursor:not-allowed;}
+  .btn-green{width:100%;background:#16a34a;color:#fff;border:none;padding:13px;border-radius:9px;font-family:'Syne',sans-serif;font-weight:800;font-size:0.95rem;cursor:pointer;margin-top:0.75rem;display:flex;align-items:center;justify-content:center;gap:8px;}
+  .btn-green:active{background:#15803d;}
+  .btn-whatsapp{width:100%;background:#128c7e;color:#fff;border:none;padding:13px;border-radius:9px;font-family:'Syne',sans-serif;font-weight:800;font-size:0.95rem;cursor:pointer;margin-top:0.75rem;display:flex;align-items:center;justify-content:center;gap:8px;}
+  .btn-whatsapp:active{background:#0e6b61;}
+  .btn-secondary{width:100%;background:#1a1a26;color:#9ca3af;border:1px solid #2a2a3d;padding:12px;border-radius:9px;font-family:'DM Sans',sans-serif;font-weight:600;font-size:0.9rem;cursor:pointer;margin-top:0.75rem;}
+
+  /* SUCCESS PANEL */
+  .success-panel{background:#052e16;border:1px solid #166534;border-radius:14px;padding:1.5rem;text-align:center;margin-bottom:1.25rem;}
+  .success-panel .icon{font-size:2.5rem;margin-bottom:0.5rem;}
+  .success-panel h3{font-family:'Syne',sans-serif;font-weight:800;font-size:1.1rem;color:#4ade80;margin-bottom:4px;}
+  .success-panel p{font-size:0.85rem;color:#86efac;line-height:1.5;}
 
   .spinner{width:28px;height:28px;border:3px solid #2a2a3d;border-top-color:#f5c518;border-radius:50%;animation:spin .7s linear infinite;margin:3rem auto;}
   @keyframes spin{to{transform:rotate(360deg);}}
@@ -75,6 +88,8 @@
   .lightbox{position:fixed;inset:0;background:rgba(0,0,0,.92);z-index:500;display:flex;align-items:center;justify-content:center;padding:1rem;}
   .lightbox img{max-width:100%;max-height:90vh;border-radius:8px;}
   .lightbox-close{position:absolute;top:1rem;right:1rem;background:#fff;border:none;border-radius:50%;width:36px;height:36px;font-size:1.1rem;cursor:pointer;}
+
+  .divider{border:none;border-top:1px solid #2a2a3d;margin:1.5rem 0;}
 </style>
 </head>
 <body>
@@ -109,7 +124,7 @@
       <button class="pin-btn" onclick="pinPress('7')">7</button>
       <button class="pin-btn" onclick="pinPress('8')">8</button>
       <button class="pin-btn" onclick="pinPress('9')">9</button>
-      <button class="pin-btn" onclick="pinClear()" style="font-size:0.85rem;color:#6b6b8a;">✕ Borrar</button>
+      <button class="pin-btn" onclick="pinClear()" style="font-size:0.82rem;color:#6b6b8a;">✕ Borrar</button>
       <button class="pin-btn" onclick="pinPress('0')">0</button>
       <button class="pin-btn" onclick="pinBack()" style="font-size:1rem;">⌫</button>
     </div>
@@ -135,16 +150,15 @@ const HEADERS  = {"Content-Type":"application/json","apikey":SUPA_KEY,"Authoriza
 const TECH_PIN = "1971";
 const BUCKET   = "photos";
 
-const params   = new URLSearchParams(location.search);
-const orderId  = params.get("id");
-let order      = null;
-let pinValue   = "";
+const params  = new URLSearchParams(location.search);
+const orderId = params.get("id");
+let order     = null;
+let pinValue  = "";
 
-// ── PIN ──────────────────────────────────────────────────────────────────────
+// ── PIN ───────────────────────────────────────────────────────────────────────
 function pinPress(d) {
   if (pinValue.length >= 4) return;
-  pinValue += d;
-  updateDots();
+  pinValue += d; updateDots();
   if (pinValue.length === 4) setTimeout(checkPin, 150);
 }
 function pinBack()  { pinValue = pinValue.slice(0,-1); updateDots(); }
@@ -162,10 +176,9 @@ function checkPin() {
   } else {
     document.getElementById("pin-error").style.display = "block";
     pinValue = ""; updateDots();
-    setTimeout(()=>document.getElementById("pin-error").style.display="none",2000);
+    setTimeout(()=>document.getElementById("pin-error").style.display="none", 2000);
   }
 }
-// Auto-skip PIN if already authenticated this session
 if (sessionStorage.getItem("br_scan_auth")==="ok") {
   document.getElementById("pin-container").style.display = "none";
   document.getElementById("order-container").style.display = "block";
@@ -173,12 +186,12 @@ if (sessionStorage.getItem("br_scan_auth")==="ok") {
 
 // ── SUPABASE ──────────────────────────────────────────────────────────────────
 async function dbFetch(path, opts={}) {
-  const r = await fetch(SUPA_URL+"/rest/v1/"+path,{headers:HEADERS,...opts});
+  const r = await fetch(SUPA_URL+"/rest/v1/"+path, {headers:HEADERS,...opts});
   if (!r.ok) { const e=await r.text(); throw new Error(e); }
   return r.status===204 ? null : r.json();
 }
 async function uploadToStorage(blob, fileName) {
-  const r = await fetch(`${SUPA_URL}/storage/v1/object/${BUCKET}/${fileName}`,{
+  const r = await fetch(`${SUPA_URL}/storage/v1/object/${BUCKET}/${fileName}`, {
     method:"POST",
     headers:{"apikey":SUPA_KEY,"Authorization":"Bearer "+SUPA_KEY,"Content-Type":"image/jpeg","x-upsert":"true"},
     body: blob
@@ -189,11 +202,12 @@ async function uploadToStorage(blob, fileName) {
 
 const fmt    = iso => iso ? new Date(iso).toLocaleString("es-EC",{dateStyle:"short",timeStyle:"short"}) : "—";
 const nowISO = () => new Date().toISOString();
+const ordNum = () => order.order_num ? "ORD-"+String(order.order_num).padStart(4,"0") : "#"+order.id;
 
-function toast(msg,color="#22c55e") {
+function toast(msg, color="#22c55e") {
   const el = document.createElement("div");
   el.className="success-toast"; el.style.background=color; el.textContent=msg;
-  document.body.appendChild(el); setTimeout(()=>el.remove(),2800);
+  document.body.appendChild(el); setTimeout(()=>el.remove(), 2800);
 }
 
 // ── LOAD ──────────────────────────────────────────────────────────────────────
@@ -201,11 +215,12 @@ async function loadOrder() {
   const c = document.getElementById("order-container");
   if (!orderId) { c.innerHTML=`<div class="error-msg">⚠️ QR inválido.</div>`; return; }
   try {
-    const rows = await dbFetch(`orders?id=eq.${orderId}`);
-    if (!rows||rows.length===0) { c.innerHTML=`<div class="error-msg">⚠️ Orden #${orderId} no encontrada.</div>`; return; }
+    // Load only this specific order - fast single row fetch
+    const rows = await dbFetch(`orders?id=eq.${orderId}&select=*`);
+    if (!rows||rows.length===0) { c.innerHTML=`<div class="error-msg">⚠️ Orden ${orderId} no encontrada.</div>`; return; }
     order = rows[0];
     renderOrder();
-  } catch(e) { c.innerHTML=`<div class="error-msg">Error: ${e.message}</div>`; }
+  } catch(e) { c.innerHTML=`<div class="error-msg">Error al cargar: ${e.message}</div>`; }
 }
 
 // ── RENDER ────────────────────────────────────────────────────────────────────
@@ -215,10 +230,13 @@ const PC = {Normal:"#6b7280",Urgente:"#f59e0b","Crítico":"#ef4444"};
 function renderOrder() {
   let photos=[]; try{photos=JSON.parse(order.photos||"[]");}catch{}
   let notes=[];  try{notes=JSON.parse(order.reports||"[]");}catch{}
+  const isListo = order.status==="Listo";
 
   document.getElementById("order-container").innerHTML = `
+
+    <!-- INFO CARD -->
     <div class="order-card">
-      <div class="order-id">ORDEN #${order.id}</div>
+      <div class="order-id">ORDEN DE TRABAJO · ${ordNum()}</div>
       <div class="order-name">${order.client||"—"}</div>
       <div class="order-phone">${order.phone||""}</div>
       <div style="margin-bottom:.75rem">
@@ -226,26 +244,40 @@ function renderOrder() {
         <span style="margin-left:8px;font-size:.82rem;font-weight:700;color:${PC[order.priority]||'#6b7280'}">● ${order.priority}</span>
       </div>
       <div class="info-grid">
-        ${[["Servicio",order.service],["Marca",order.brand],["Modelo",order.model],["N° Serie",order.serial],["Recibido",fmt(order.created)],["Valor",order.price?`$${parseFloat(order.price).toFixed(2)}`:"—"]].map(([k,v])=>`<div class="info-item"><div class="k">${k}</div><div class="v">${v||"—"}</div></div>`).join("")}
+        ${[["Servicio",order.service],["Marca",order.brand],["Modelo",order.model],["N° Serie",order.serial],["Técnico",order.technician||"—"],["Valor",order.price?`$${parseFloat(order.price).toFixed(2)}`:"—"]].map(([k,v])=>`
+          <div class="info-item"><div class="k">${k}</div><div class="v">${v||"—"}</div></div>`).join("")}
       </div>
       ${order.observations?`<div class="obs-box"><div class="k">Observaciones</div><p>${order.observations}</p></div>`:""}
     </div>
 
+    <!-- ACTUALIZAR ESTADO -->
     <div style="margin-bottom:1.5rem">
       <div class="section-title">Actualizar estado</div>
       <select class="status-select" id="status-sel">
         ${["Recibido","En proceso","Listo","Entregado","Cancelado"].map(s=>`<option ${s===order.status?"selected":""}>${s}</option>`).join("")}
       </select>
-      <button class="btn-primary" onclick="saveStatus()">💾 Guardar estado</button>
+      <button class="btn-primary" onclick="saveAndExit()">
+        💾 Guardar y salir
+      </button>
+      ${isListo ? `
+      <button class="btn-whatsapp" onclick="notifyWhatsApp()">
+        📱 Notificar al cliente por WhatsApp
+      </button>` : `
+      <button class="btn-green" onclick="markListoAndNotify()">
+        ✅ Marcar como Listo y notificar
+      </button>`}
     </div>
 
+    <hr class="divider"/>
+
+    <!-- FOTOS -->
     <div style="margin-bottom:1.5rem">
       <div class="section-title">Fotos de la revisión (${photos.length})</div>
       <div id="upload-progress" class="upload-progress">
         <div>📤 Subiendo foto…</div>
         <div class="progress-bar-wrap"><div class="progress-bar" id="progress-bar"></div></div>
       </div>
-      <div class="photos-grid" id="photos-grid">
+      <div class="photos-grid">
         ${photos.map(url=>`<img class="photo-thumb" src="${url}" onclick="openLightbox('${url}')" />`).join("")}
         <label class="photo-add">
           <span class="icon">📷</span><span>Agregar</span>
@@ -254,10 +286,13 @@ function renderOrder() {
       </div>
     </div>
 
+    <!-- NOTAS -->
     <div style="margin-bottom:1.5rem">
       <div class="section-title">Notas técnicas (${notes.length})</div>
       <div style="margin-bottom:.75rem">
-        ${notes.length ? notes.map((n,i)=>`<div class="note-item"><span style="color:#6b6b8a;font-size:.75rem">#${i+1} · </span>${n}</div>`).join("") : `<div style="color:#6b6b8a;font-size:.85rem;margin-bottom:8px">Sin notas aún.</div>`}
+        ${notes.length
+          ? notes.map((n,i)=>`<div class="note-item"><span style="color:#6b6b8a;font-size:.75rem">#${i+1} · </span>${n}</div>`).join("")
+          : `<div style="color:#6b6b8a;font-size:.85rem;margin-bottom:8px">Sin notas aún.</div>`}
       </div>
       <div class="note-add">
         <textarea id="note-input" placeholder="Escribe una nota técnica, diagnóstico o reporte…"></textarea>
@@ -267,15 +302,84 @@ function renderOrder() {
   `;
 }
 
-// ── ACTIONS ───────────────────────────────────────────────────────────────────
-async function saveStatus() {
-  const s = document.getElementById("status-sel").value;
+// ── GUARDAR Y SALIR ───────────────────────────────────────────────────────────
+async function saveAndExit() {
+  const s   = document.getElementById("status-sel").value;
+  const btn = document.querySelector(".btn-primary");
+  btn.textContent = "Guardando…"; btn.disabled = true;
   try {
-    await dbFetch(`orders?id=eq.${orderId}`,{method:"PATCH",headers:{...HEADERS,"Prefer":"return=representation"},body:JSON.stringify({status:s,updated:nowISO()})});
-    order.status=s; toast("✅ Estado actualizado"); renderOrder();
+    await dbFetch(`orders?id=eq.${orderId}`,{
+      method:"PATCH",
+      headers:{...HEADERS,"Prefer":"return=representation"},
+      body:JSON.stringify({status:s, updated:nowISO()})
+    });
+    order.status = s;
+    // Show success panel
+    const isListo = s === "Listo";
+    document.getElementById("order-container").innerHTML = `
+      <div class="success-panel">
+        <div class="icon">${isListo ? "✅" : "💾"}</div>
+        <h3>${isListo ? "¡Batería lista!" : "Cambios guardados"}</h3>
+        <p>Orden ${ordNum()} — <strong>${order.client}</strong><br/>
+        Estado actualizado a <strong>${s}</strong></p>
+      </div>
+      ${isListo ? `
+      <button class="btn-whatsapp" onclick="notifyWhatsApp()">
+        📱 Notificar al cliente por WhatsApp
+      </button>` : ""}
+      <button class="btn-secondary" onclick="loadOrder()">
+        ← Volver a la orden
+      </button>
+    `;
+  } catch(e) {
+    btn.textContent = "💾 Guardar y salir"; btn.disabled = false;
+    alert("Error: "+e.message);
+  }
+}
+
+// ── MARCAR LISTO Y NOTIFICAR ─────────────────────────────────────────────────
+async function markListoAndNotify() {
+  try {
+    await dbFetch(`orders?id=eq.${orderId}`,{
+      method:"PATCH",
+      headers:{...HEADERS,"Prefer":"return=representation"},
+      body:JSON.stringify({status:"Listo", updated:nowISO()})
+    });
+    order.status = "Listo";
+    notifyWhatsApp();
   } catch(e) { alert("Error: "+e.message); }
 }
 
+// ── WHATSAPP ──────────────────────────────────────────────────────────────────
+function notifyWhatsApp() {
+  const price = order.price ? `$${parseFloat(order.price).toFixed(2)}` : "Por confirmar";
+  const phone = (order.phone||"").replace(/\D/g,"");
+  const text = [
+    `⚡ *BATERÍAS RÉCORD Battery Center*`,
+    `📍 Calle 21 #5-44, La Libertad`,
+    `📞 322 701 9611 / 350 804 6004`,
+    ``,
+    `✅ *Su batería está LISTA para retirar*`,
+    ``,
+    `*Orden de Trabajo ${ordNum()}*`,
+    `👤 Cliente: ${order.client||"—"}`,
+    `🔧 Servicio: ${order.service||"—"}`,
+    `🏷️ Marca / Modelo: ${order.brand||""} ${order.model||""}`,
+    `🔢 N° Serie: ${order.serial||"—"}`,
+    `💰 Valor: ${price}`,
+    ``,
+    `_Por favor acérquese a nuestro local a retirar su batería._`,
+    `_Gracias por confiar en Baterías Récord_ 🔋`,
+  ].join("\n");
+
+  // Open directly to client's number if available
+  const url = phone.length >= 7
+    ? `https://wa.me/57${phone}?text=${encodeURIComponent(text)}`
+    : `https://wa.me/?text=${encodeURIComponent(text)}`;
+  window.open(url, "_blank");
+}
+
+// ── FOTO ──────────────────────────────────────────────────────────────────────
 function resizeImage(file, maxPx) {
   return new Promise(res => {
     const reader = new FileReader();
@@ -309,32 +413,43 @@ async function handlePhoto(input) {
     bar.style.width="80%";
     let photos=[]; try{photos=JSON.parse(order.photos||"[]");}catch{}
     photos.push(url);
-    await dbFetch(`orders?id=eq.${orderId}`,{method:"PATCH",headers:{...HEADERS,"Prefer":"return=representation"},body:JSON.stringify({photos:JSON.stringify(photos),updated:nowISO()})});
+    await dbFetch(`orders?id=eq.${orderId}`,{
+      method:"PATCH",
+      headers:{...HEADERS,"Prefer":"return=representation"},
+      body:JSON.stringify({photos:JSON.stringify(photos),updated:nowISO()})
+    });
     order.photos=JSON.stringify(photos);
     bar.style.width="100%";
     setTimeout(()=>{prog.style.display="none";bar.style.width="0%";},400);
-    toast("📷 Foto guardada correctamente");
+    toast("📷 Foto guardada");
     renderOrder();
   } catch(e) { prog.style.display="none"; alert("Error al subir foto: "+e.message); }
 }
 
+// ── NOTA ──────────────────────────────────────────────────────────────────────
 async function saveNote() {
-  const input=document.getElementById("note-input");
-  const text=input.value.trim(); if(!text) return;
+  const input = document.getElementById("note-input");
+  const text  = input.value.trim(); if(!text) return;
   let notes=[]; try{notes=JSON.parse(order.reports||"[]");}catch{}
-  const ts=new Date().toLocaleString("es-EC",{dateStyle:"short",timeStyle:"short"});
+  const ts = new Date().toLocaleString("es-EC",{dateStyle:"short",timeStyle:"short"});
   notes.push(`[${ts}] ${text}`);
   try {
-    await dbFetch(`orders?id=eq.${orderId}`,{method:"PATCH",headers:{...HEADERS,"Prefer":"return=representation"},body:JSON.stringify({reports:JSON.stringify(notes),updated:nowISO()})});
-    order.reports=JSON.stringify(notes); toast("✅ Nota guardada"); renderOrder();
+    await dbFetch(`orders?id=eq.${orderId}`,{
+      method:"PATCH",
+      headers:{...HEADERS,"Prefer":"return=representation"},
+      body:JSON.stringify({reports:JSON.stringify(notes),updated:nowISO()})
+    });
+    order.reports=JSON.stringify(notes);
+    toast("✅ Nota guardada");
+    renderOrder();
   } catch(e) { alert("Error: "+e.message); }
 }
 
 function openLightbox(src){document.getElementById("lb-img").src=src;document.getElementById("lightbox").style.display="flex";}
 function closeLightbox(){document.getElementById("lightbox").style.display="none";}
 
-// Start
-if(document.getElementById("order-container").style.display!=="none") loadOrder();
+// ── INIT ──────────────────────────────────────────────────────────────────────
+if (sessionStorage.getItem("br_scan_auth")==="ok") loadOrder();
 </script>
 </body>
 </html>

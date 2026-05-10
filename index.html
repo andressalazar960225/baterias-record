@@ -223,7 +223,7 @@
   <table>
     <thead>
       <tr>
-        <th>ID</th><th>Cliente</th><th>Servicio</th>
+        <th>N° Orden</th><th>Cliente</th><th>Servicio</th>
         <th>Marca / Modelo</th><th>Estado</th>
         <th>Prioridad</th><th>Actualizado</th><th></th>
       </tr>
@@ -267,6 +267,9 @@
       <div class="field"><label>Valor del servicio ($)</label>
         <input id="f-price" type="number" min="0" step="0.01" placeholder="0.00" />
       </div>
+      <div class="field"><label>Técnico responsable</label>
+        <input id="f-tech" placeholder="Nombre del técnico" />
+      </div>
     </div>
     <div class="modal-footer">
       <button class="btn-cancel" onclick="closeForm()">Cancelar</button>
@@ -291,6 +294,7 @@
       <div class="k">Observaciones</div>
       <p id="d-obs"></p>
     </div>
+    <div id="d-photos"></div>
     <div class="reports-section">
       <div class="reports-title" id="d-rep-title">Reportes / Historial (0)</div>
       <div id="d-reports"></div>
@@ -451,7 +455,7 @@ function renderTable() {
 
   document.getElementById("tbody").innerHTML = filtered.map(o => `
     <tr onclick="openDetail(${o.id})">
-      <td style="font-family:monospace;color:var(--muted);font-size:0.78rem">#${o.id}</td>
+      <td style="font-family:monospace;color:var(--muted);font-size:0.78rem">${o.order_num ? 'ORD-'+String(o.order_num).padStart(4,'0') : '#'+o.id}</td>
       <td><div style="font-weight:600">${o.client||"—"}</div><div style="color:var(--muted);font-size:0.78rem">${o.phone||""}</div></td>
       <td style="color:#93c5fd">${o.service||"—"}</td>
       <td><div style="color:var(--text)">${o.brand||"—"}</div><div style="color:var(--muted);font-size:0.78rem">${o.model||""}</div></td>
@@ -479,8 +483,9 @@ function openForm(id=null) {
     document.getElementById("f-status").value  = o.status||"Recibido";
     document.getElementById("f-priority").value= o.priority||"Normal";
     document.getElementById("f-price").value  = o.price||"";
+    document.getElementById("f-tech").value   = o.technician||"";
   } else {
-    ["f-client","f-phone","f-brand","f-model","f-serial","f-obs","f-price"].forEach(id=>document.getElementById(id).value="");
+    ["f-client","f-phone","f-brand","f-model","f-serial","f-obs","f-price","f-tech"].forEach(id=>document.getElementById(id).value="");
     document.getElementById("f-service").value="Revisión";
     document.getElementById("f-status").value="Recibido";
     document.getElementById("f-priority").value="Normal";
@@ -508,6 +513,7 @@ async function saveOrder() {
     priority: document.getElementById("f-priority").value,
     observations: document.getElementById("f-obs").value.trim(),
     price: document.getElementById("f-price").value||"0",
+    technician: document.getElementById("f-tech").value.trim(),
     updated: nowISO(),
   };
   const btn = document.querySelector("#modal-form .btn-save");
@@ -518,6 +524,9 @@ async function saveOrder() {
     } else {
       data.created = nowISO();
       data.reports = "[]";
+      // Generate consecutive order number
+      const allNums = allOrders.map(x=>x.order_num||0).filter(n=>n>0);
+      data.order_num = allNums.length > 0 ? Math.max(...allNums)+1 : 1;
       await insertOrder(data);
     }
     document.getElementById("modal-form").style.display = "none";
@@ -539,17 +548,30 @@ function openDetail(id) {
 function renderDetail() {
   const o = allOrders.find(x=>x.id===viewingId);
   if (!o) return;
-  document.getElementById("d-id").textContent    = `ORDEN #${o.id}`;
+  const ordNum = o.order_num ? String(o.order_num).padStart(4,"0") : String(o.id);
+  document.getElementById("d-id").textContent    = `ORDEN DE TRABAJO N° ORD-${ordNum}`;
   document.getElementById("d-name").textContent  = o.client||"—";
   document.getElementById("d-phone").textContent = o.phone||"";
   document.getElementById("d-badges").innerHTML  =
     `${badge(o.status)} <span style="color:${PRIORITY_COLOR[o.priority]};font-weight:700;font-size:0.85rem">● ${o.priority}</span>`;
   document.getElementById("d-grid").innerHTML = [
     ["Servicio",o.service],["Marca",o.brand],["Modelo",o.model],
-    ["N° Serie",o.serial],["Valor del Servicio", o.price ? `$${parseFloat(o.price).toFixed(2)}` : "—"],
+    ["N° Serie",o.serial],["Técnico",o.technician||"—"],["Valor del Servicio", o.price ? `$${parseFloat(o.price).toFixed(2)}` : "—"],
     ["Recibido",fmt(o.created)],["Actualizado",fmt(o.updated)]
   ].map(([k,v])=>`<div class="info-card"><div class="k">${k}</div><div class="v">${v||"—"}</div></div>`).join("");
   document.getElementById("d-obs").textContent = o.observations||"Sin observaciones.";
+
+  // FOTOS
+  let photos = [];
+  try { photos = JSON.parse(o.photos||"[]"); } catch{}
+  const photosHTML = photos.length ? `
+    <div style="margin-bottom:1.25rem;">
+      <div style="font-size:0.68rem;color:var(--muted);text-transform:uppercase;letter-spacing:0.08em;margin-bottom:8px;">Fotos de revisión (${photos.length})</div>
+      <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:6px;">
+        ${photos.map(url=>`<img src="${url}" style="width:100%;aspect-ratio:1;object-fit:cover;border-radius:7px;border:1px solid var(--border);cursor:pointer;" onclick="window.open('${url}','_blank')" />`).join("")}
+      </div>
+    </div>` : "";
+  document.getElementById("d-photos").innerHTML = photosHTML;
 
   let reports = [];
   try { reports = JSON.parse(o.reports||"[]"); } catch {}
@@ -603,22 +625,23 @@ function buildReceiptHTML(o) {
   return `
   <div style="background:#fff;color:#111;font-family:'Arial',sans-serif;max-width:520px;margin:0 auto;padding:32px 28px;border:1px solid #ddd;">
     <!-- HEADER -->
-    <div style="text-align:center;border-bottom:3px solid #f5c518;padding-bottom:20px;margin-bottom:20px;">
-      <div style="font-size:2rem;font-weight:900;color:#cc0000;letter-spacing:-1px;line-height:1">BATERÍAS <span style="color:#cc0000">RÉCORD</span></div>
-      <div style="font-size:0.9rem;font-weight:700;color:#222;letter-spacing:2px;margin-top:2px">BATTERY CENTER</div>
-      <div style="font-size:0.78rem;color:#555;margin-top:8px;">📍 ${NEGOCIO.direccion}</div>
-      <div style="font-size:0.78rem;color:#555;margin-top:2px;">📞 ${NEGOCIO.telefonos}</div>
+    <div style="display:flex;align-items:center;justify-content:space-between;border-bottom:3px solid #f5c518;padding-bottom:18px;margin-bottom:20px;gap:12px;">
+      <img src="https://aavvptuojuxrlqwbbnbu.supabase.co/storage/v1/object/public/photos/logo-record.png" onerror="this.style.display='none'" style="height:70px;width:auto;object-fit:contain;" />
+      <div style="text-align:right;">
+        <div style="font-size:0.72rem;color:#888;text-transform:uppercase;letter-spacing:1px;">📍 ${NEGOCIO.direccion}</div>
+        <div style="font-size:0.72rem;color:#888;margin-top:2px;">📞 ${NEGOCIO.telefonos}</div>
+      </div>
     </div>
 
-    <!-- TITLE -->
-    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:20px;">
+    <!-- TITLE ORDEN DE TRABAJO -->
+    <div style="background:#111;color:#fff;border-radius:8px;padding:14px 18px;display:flex;justify-content:space-between;align-items:center;margin-bottom:20px;">
       <div>
-        <div style="font-size:1.1rem;font-weight:800;color:#111;">RECIBO DE INGRESO</div>
-        <div style="font-size:0.75rem;color:#888;margin-top:2px;">Orden #${o.id}</div>
+        <div style="font-size:0.65rem;letter-spacing:2px;text-transform:uppercase;color:#f5c518;margin-bottom:2px;">Orden de Trabajo</div>
+        <div style="font-size:1.3rem;font-weight:900;letter-spacing:-0.5px;">N° ORD-${o.order_num ? String(o.order_num).padStart(4,"0") : String(o.id).padStart(4,"0")}</div>
       </div>
       <div style="text-align:right;">
-        <div style="font-size:0.75rem;color:#888;">Fecha de ingreso</div>
-        <div style="font-size:0.85rem;font-weight:700;">${fmt(o.created)}</div>
+        <div style="font-size:0.68rem;color:#aaa;">Fecha de ingreso</div>
+        <div style="font-size:0.88rem;font-weight:700;color:#f5c518;">${fmt(o.created)}</div>
       </div>
     </div>
 
@@ -632,7 +655,7 @@ function buildReceiptHTML(o) {
     <!-- DETALLES -->
     <table style="width:100%;border-collapse:collapse;margin-bottom:16px;font-size:0.88rem;">
       <tbody>
-        ${[["Tipo de servicio", o.service],["Marca", o.brand],["Modelo", o.model],["N° Serie / Etiqueta", o.serial],["Estado actual", o.status],["Prioridad", o.priority]].map(([k,v])=>`
+        ${[["Tipo de servicio", o.service],["Marca", o.brand],["Modelo", o.model],["N° Serie / Etiqueta", o.serial],["Técnico responsable", o.technician||"—"],["Estado actual", o.status],["Prioridad", o.priority]].map(([k,v])=>`
         <tr style="border-bottom:1px solid #eee;">
           <td style="padding:8px 4px;color:#666;width:45%;">${k}</td>
           <td style="padding:8px 4px;font-weight:600;color:#111;">${v||"—"}</td>
@@ -653,10 +676,19 @@ function buildReceiptHTML(o) {
       <div style="font-size:1.4rem;font-weight:900;color:#f5c518;">${price}</div>
     </div>
 
+    <!-- FIRMA -->
+    <div style="display:flex;gap:2rem;margin-bottom:20px;margin-top:8px;">
+      <div style="flex:1;text-align:center;">
+        <div style="border-top:1px solid #333;padding-top:6px;font-size:0.72rem;color:#666;">Firma del cliente</div>
+      </div>
+      <div style="flex:1;text-align:center;">
+        <div style="border-top:1px solid #333;padding-top:6px;font-size:0.72rem;color:#666;">Recibido por: ${o.technician||"______________"}</div>
+      </div>
+    </div>
     <!-- FOOTER -->
     <div style="text-align:center;border-top:1px dashed #ccc;padding-top:16px;">
       <div style="font-size:0.78rem;color:#888;">Gracias por confiar en <strong>Baterías Récord Battery Center</strong></div>
-      <div style="font-size:0.72rem;color:#aaa;margin-top:4px;">Conserve este recibo como comprobante de ingreso de su batería.</div>
+      <div style="font-size:0.72rem;color:#aaa;margin-top:4px;">Conserve este documento como comprobante de su Orden de Trabajo.</div>
     </div>
   </div>`;
 }
@@ -681,7 +713,8 @@ function sendWhatsApp() {
     `📍 Calle 21 #5-44, La Libertad`,
     `📞 322 701 9611 / 350 804 6004`,
     ``,
-    `*RECIBO DE INGRESO #${o.id}*`,
+    o.status==="Listo" ? `✅ *Su batería está LISTA para retirar*` : ``,
+    `*ORDEN DE TRABAJO N° ORD-${o.order_num ? String(o.order_num).padStart(4,"0") : o.id}*`,
     ``,
     `👤 Cliente: ${o.client||"—"}`,
     `📱 Teléfono: ${o.phone||"—"}`,
@@ -711,7 +744,7 @@ function printLabel() {
   const scanURL = `${location.origin}${location.pathname.replace('index.html','')}scan.html?id=${o.id}`;
   const qrAPI   = `https://api.qrserver.com/v1/create-qr-code/?size=160x160&data=${encodeURIComponent(scanURL)}`;
   const win = window.open("","_blank","width=500,height=600");
-  win.document.write(`<!DOCTYPE html><html><head><title>Etiqueta #${o.id}</title>
+  win.document.write(`<!DOCTYPE html><html><head><title>Etiqueta ORD-${o.order_num ? String(o.order_num).padStart(4,'0') : o.id}</title>
   <style>
     *{box-sizing:border-box;margin:0;padding:0;}
     body{background:#f5f5f5;display:flex;align-items:center;justify-content:center;min-height:100vh;font-family:Arial,sans-serif;}
@@ -728,10 +761,10 @@ function printLabel() {
   <body>
     <div>
       <div class="label">
-        <div class="brand">⚡ Baterías Récord</div>
+        <img src="https://aavvptuojuxrlqwbbnbu.supabase.co/storage/v1/object/public/photos/logo-record.png" onerror="this.style.display='none'" style="height:36px;width:auto;margin-bottom:4px;" />
         <div class="title">Battery Center</div>
         <img class="qr" src="${qrAPI}" width="140" height="140" />
-        <div class="order">ORDEN #${o.id}</div>
+        <div class="order">ORD-${o.order_num ? String(o.order_num).padStart(4,"0") : String(o.id).padStart(4,"0")}</div>
         <div class="row"><b>${o.client||"—"}</b></div>
         <div class="row">${o.service||"—"} · ${o.brand||""} ${o.model||""}</div>
         <div class="row">Serie: ${o.serial||"—"}</div>

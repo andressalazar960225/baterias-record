@@ -133,6 +133,17 @@
 
   .count-info { padding: 0 2rem 0.5rem; color: var(--muted); font-size: 0.78rem; }
 
+  /* RECEIPT */
+  @media print {
+    body * { visibility: hidden !important; }
+    #receipt-print, #receipt-print * { visibility: visible !important; }
+    #receipt-print { position: fixed; inset: 0; background: #fff; z-index: 9999; padding: 0; margin: 0; }
+  }
+  #receipt-print { display: none; }
+
+  .btn-receipt { background: #22c55e; color: #000; border: none; padding: 8px 16px; border-radius: 7px; cursor: pointer; font-weight: 700; font-size: 0.85rem; font-family: 'Syne', sans-serif; }
+  .btn-whatsapp { background: #128c7e; color: #fff; border: none; padding: 8px 16px; border-radius: 7px; cursor: pointer; font-weight: 700; font-size: 0.85rem; font-family: 'Syne', sans-serif; }
+
   @media (max-width: 600px) {
     .stats { padding: 1rem; gap: 0.5rem; }
     .toolbar, .tabs, .table-wrap, .count-info { padding-left: 1rem; padding-right: 1rem; }
@@ -238,6 +249,9 @@
       <div class="field full"><label>Observaciones</label>
         <textarea id="f-obs" placeholder="Descripción del problema, condición de la batería…"></textarea>
       </div>
+      <div class="field"><label>Valor del servicio ($)</label>
+        <input id="f-price" type="number" min="0" step="0.01" placeholder="0.00" />
+      </div>
     </div>
     <div class="modal-footer">
       <button class="btn-cancel" onclick="closeForm()">Cancelar</button>
@@ -272,7 +286,9 @@
     </div>
     <div class="modal-footer" style="justify-content:space-between">
       <button class="btn-danger" onclick="deleteOrder()">Eliminar</button>
-      <div style="display:flex;gap:0.75rem">
+      <div style="display:flex;gap:0.75rem;flex-wrap:wrap">
+        <button class="btn-whatsapp" onclick="sendWhatsApp()">📱 WhatsApp</button>
+        <button class="btn-receipt" onclick="printReceipt()">🖨️ Imprimir</button>
         <button class="btn-cancel" onclick="closeDetail()">Cerrar</button>
         <button class="btn-save" onclick="editFromDetail()">Editar</button>
       </div>
@@ -280,11 +296,21 @@
   </div>
 </div>
 
+<!-- RECEIPT PRINT -->
+<div id="receipt-print"></div>
+
 <script>
 // ── CONFIG SUPABASE ─────────────────────────────────────────────────────────
 const SUPA_URL = "https://aavvptuojuxrlqwbbnbu.supabase.co";
 const SUPA_KEY = "sb_publishable_83BuqtayE922CnSjM27Bmg_anpKra4f";
 const HEADERS  = { "Content-Type":"application/json", "apikey": SUPA_KEY, "Authorization": "Bearer " + SUPA_KEY };
+
+// ── NEGOCIO ──────────────────────────────────────────────────────────────────
+const NEGOCIO = {
+  nombre:    "Baterías Récord Battery Center",
+  telefonos: "322 701 9611  —  350 804 6004",
+  direccion: "Calle 21 #5-44, La Libertad",
+};
 
 // ── STATE ───────────────────────────────────────────────────────────────────
 let allOrders   = [];
@@ -405,9 +431,9 @@ function openForm(id=null) {
     document.getElementById("f-service").value = o.service||"Revisión";
     document.getElementById("f-status").value  = o.status||"Recibido";
     document.getElementById("f-priority").value= o.priority||"Normal";
-    document.getElementById("f-obs").value     = o.observations||"";
+    document.getElementById("f-price").value  = o.price||"";
   } else {
-    ["f-client","f-phone","f-brand","f-model","f-serial","f-obs"].forEach(id=>document.getElementById(id).value="");
+    ["f-client","f-phone","f-brand","f-model","f-serial","f-obs","f-price"].forEach(id=>document.getElementById(id).value="");
     document.getElementById("f-service").value="Revisión";
     document.getElementById("f-status").value="Recibido";
     document.getElementById("f-priority").value="Normal";
@@ -434,6 +460,7 @@ async function saveOrder() {
     status: document.getElementById("f-status").value,
     priority: document.getElementById("f-priority").value,
     observations: document.getElementById("f-obs").value.trim(),
+    price: document.getElementById("f-price").value||"0",
     updated: nowISO(),
   };
   const btn = document.querySelector("#modal-form .btn-save");
@@ -472,7 +499,8 @@ function renderDetail() {
     `${badge(o.status)} <span style="color:${PRIORITY_COLOR[o.priority]};font-weight:700;font-size:0.85rem">● ${o.priority}</span>`;
   document.getElementById("d-grid").innerHTML = [
     ["Servicio",o.service],["Marca",o.brand],["Modelo",o.model],
-    ["N° Serie",o.serial],["Recibido",fmt(o.created)],["Actualizado",fmt(o.updated)]
+    ["N° Serie",o.serial],["Valor del Servicio", o.price ? `$${parseFloat(o.price).toFixed(2)}` : "—"],
+    ["Recibido",fmt(o.created)],["Actualizado",fmt(o.updated)]
   ].map(([k,v])=>`<div class="info-card"><div class="k">${k}</div><div class="v">${v||"—"}</div></div>`).join("");
   document.getElementById("d-obs").textContent = o.observations||"Sin observaciones.";
 
@@ -520,6 +548,113 @@ async function deleteOrder() {
     viewingId = null;
     await loadOrders();
   } catch(e) { alert("Error: " + e.message); }
+}
+
+// ── RECEIPT ─────────────────────────────────────────────────────────────────
+function buildReceiptHTML(o) {
+  const price = o.price ? `$${parseFloat(o.price).toFixed(2)}` : "—";
+  return `
+  <div style="background:#fff;color:#111;font-family:'Arial',sans-serif;max-width:520px;margin:0 auto;padding:32px 28px;border:1px solid #ddd;">
+    <!-- HEADER -->
+    <div style="text-align:center;border-bottom:3px solid #f5c518;padding-bottom:20px;margin-bottom:20px;">
+      <div style="font-size:2rem;font-weight:900;color:#cc0000;letter-spacing:-1px;line-height:1">BATERÍAS <span style="color:#cc0000">RÉCORD</span></div>
+      <div style="font-size:0.9rem;font-weight:700;color:#222;letter-spacing:2px;margin-top:2px">BATTERY CENTER</div>
+      <div style="font-size:0.78rem;color:#555;margin-top:8px;">📍 ${NEGOCIO.direccion}</div>
+      <div style="font-size:0.78rem;color:#555;margin-top:2px;">📞 ${NEGOCIO.telefonos}</div>
+    </div>
+
+    <!-- TITLE -->
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:20px;">
+      <div>
+        <div style="font-size:1.1rem;font-weight:800;color:#111;">RECIBO DE INGRESO</div>
+        <div style="font-size:0.75rem;color:#888;margin-top:2px;">Orden #${o.id}</div>
+      </div>
+      <div style="text-align:right;">
+        <div style="font-size:0.75rem;color:#888;">Fecha de ingreso</div>
+        <div style="font-size:0.85rem;font-weight:700;">${fmt(o.created)}</div>
+      </div>
+    </div>
+
+    <!-- CLIENTE -->
+    <div style="background:#f9f9f9;border-left:4px solid #f5c518;padding:12px 14px;margin-bottom:16px;border-radius:0 6px 6px 0;">
+      <div style="font-size:0.68rem;color:#888;text-transform:uppercase;letter-spacing:1px;margin-bottom:4px;">Cliente</div>
+      <div style="font-size:1rem;font-weight:700;">${o.client||"—"}</div>
+      <div style="font-size:0.85rem;color:#555;">${o.phone||""}</div>
+    </div>
+
+    <!-- DETALLES -->
+    <table style="width:100%;border-collapse:collapse;margin-bottom:16px;font-size:0.88rem;">
+      <tbody>
+        ${[["Tipo de servicio", o.service],["Marca", o.brand],["Modelo", o.model],["N° Serie / Etiqueta", o.serial],["Estado actual", o.status],["Prioridad", o.priority]].map(([k,v])=>`
+        <tr style="border-bottom:1px solid #eee;">
+          <td style="padding:8px 4px;color:#666;width:45%;">${k}</td>
+          <td style="padding:8px 4px;font-weight:600;color:#111;">${v||"—"}</td>
+        </tr>`).join("")}
+      </tbody>
+    </table>
+
+    <!-- OBSERVACIONES -->
+    ${o.observations ? `
+    <div style="background:#fffbe6;border:1px solid #f5c518;border-radius:6px;padding:12px;margin-bottom:16px;">
+      <div style="font-size:0.68rem;color:#888;text-transform:uppercase;letter-spacing:1px;margin-bottom:4px;">Observaciones</div>
+      <div style="font-size:0.85rem;color:#333;line-height:1.5;">${o.observations}</div>
+    </div>` : ""}
+
+    <!-- VALOR -->
+    <div style="background:#111;color:#fff;border-radius:8px;padding:14px 16px;display:flex;justify-content:space-between;align-items:center;margin-bottom:20px;">
+      <div style="font-size:0.85rem;letter-spacing:1px;text-transform:uppercase;">Valor del Servicio</div>
+      <div style="font-size:1.4rem;font-weight:900;color:#f5c518;">${price}</div>
+    </div>
+
+    <!-- FOOTER -->
+    <div style="text-align:center;border-top:1px dashed #ccc;padding-top:16px;">
+      <div style="font-size:0.78rem;color:#888;">Gracias por confiar en <strong>Baterías Récord Battery Center</strong></div>
+      <div style="font-size:0.72rem;color:#aaa;margin-top:4px;">Conserve este recibo como comprobante de ingreso de su batería.</div>
+    </div>
+  </div>`;
+}
+
+function printReceipt() {
+  const o = allOrders.find(x=>x.id===viewingId);
+  if (!o) return;
+  const win = window.open("","_blank","width=600,height=800");
+  win.document.write(`<!DOCTYPE html><html><head><title>Recibo #${o.id} - Baterías Récord</title>
+  <style>body{margin:0;padding:20px;background:#f0f0f0;}@media print{body{background:#fff;padding:0;}}</style>
+  </head><body>${buildReceiptHTML(o)}
+  <script>window.onload=()=>{window.print();}<\/script></body></html>`);
+  win.document.close();
+}
+
+function sendWhatsApp() {
+  const o = allOrders.find(x=>x.id===viewingId);
+  if (!o) return;
+  const price = o.price ? `$${parseFloat(o.price).toFixed(2)}` : "Por definir";
+  const text = [
+    `⚡ *BATERÍAS RÉCORD Battery Center*`,
+    `📍 Calle 21 #5-44, La Libertad`,
+    `📞 322 701 9611 / 350 804 6004`,
+    ``,
+    `*RECIBO DE INGRESO #${o.id}*`,
+    ``,
+    `👤 Cliente: ${o.client||"—"}`,
+    `📱 Teléfono: ${o.phone||"—"}`,
+    ``,
+    `🔧 Servicio: ${o.service||"—"}`,
+    `🏷️ Marca: ${o.brand||"—"}`,
+    `📦 Modelo: ${o.model||"—"}`,
+    `🔢 N° Serie: ${o.serial||"—"}`,
+    ``,
+    `📋 Estado: ${o.status||"—"}`,
+    `💰 Valor: ${price}`,
+    ``,
+    o.observations ? `📝 Observaciones: ${o.observations}` : "",
+    ``,
+    `📅 Fecha ingreso: ${fmt(o.created)}`,
+    ``,
+    `_Gracias por confiar en Baterías Récord_ 🔋`,
+  ].filter(l=>l!==null).join("\n");
+  const url = `https://wa.me/?text=${encodeURIComponent(text)}`;
+  window.open(url, "_blank");
 }
 
 // ── INIT ────────────────────────────────────────────────────────────────────

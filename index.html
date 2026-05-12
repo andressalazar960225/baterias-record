@@ -514,8 +514,9 @@ function openForm(id=null) {
     document.getElementById("f-service").value = o.service||"Revisión";
     document.getElementById("f-status").value  = o.status||"Recibido";
     document.getElementById("f-priority").value= o.priority||"Normal";
-    document.getElementById("f-price").value  = o.price||"";
-    document.getElementById("f-tech").value   = o.technician||"";
+    document.getElementById("f-price").value   = o.price||"";
+    document.getElementById("f-tech").value    = o.technician||"";
+    document.getElementById("f-obs").value     = o.observations||"";
   } else {
     ["f-client","f-phone","f-brand","f-model","f-serial","f-obs","f-price","f-tech"].forEach(id=>document.getElementById(id).value="");
     document.getElementById("f-service").value="Revisión";

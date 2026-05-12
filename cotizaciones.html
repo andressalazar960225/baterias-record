@@ -1,0 +1,576 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>Baterías Récord — Cotizaciones</title>
+<link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet"/>
+<style>
+  :root{--bg:#0a0a0f;--surface:#12121a;--surface2:#1a1a26;--border:#2a2a3d;--accent:#f5c518;--accent2:#e8a000;--text:#f0f0f5;--muted:#6b6b8a;--green:#22c55e;}
+  *{box-sizing:border-box;margin:0;padding:0;}
+  body{background:var(--bg);color:var(--text);font-family:'DM Sans',sans-serif;min-height:100vh;}
+  .header{background:var(--surface);border-bottom:1px solid var(--border);padding:0 2rem;display:flex;align-items:center;justify-content:space-between;height:64px;position:sticky;top:0;z-index:100;}
+  .logo{display:flex;align-items:center;gap:12px;}
+  .logo-icon{width:36px;height:36px;background:var(--accent);border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:1.2rem;}
+  .logo-text{font-family:'Syne',sans-serif;font-weight:800;font-size:1.05rem;}
+  .logo-sub{font-size:0.62rem;color:var(--muted);letter-spacing:0.15em;text-transform:uppercase;}
+  .btn-new{background:var(--accent);color:#000;border:none;padding:9px 20px;border-radius:8px;font-family:'Syne',sans-serif;font-weight:700;font-size:0.85rem;cursor:pointer;}
+  .btn-new:hover{background:var(--accent2);}
+  .stats{display:flex;gap:1rem;padding:1.5rem 2rem;flex-wrap:wrap;}
+  .stat-card{background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:1rem 1.5rem;flex:1;min-width:110px;}
+  .stat-num{font-family:'Syne',sans-serif;font-size:1.8rem;font-weight:800;line-height:1;}
+  .stat-label{font-size:0.68rem;color:var(--muted);text-transform:uppercase;letter-spacing:0.1em;margin-top:4px;}
+  .toolbar{padding:0 2rem 1rem;display:flex;gap:0.75rem;flex-wrap:wrap;}
+  .search-wrap{position:relative;flex:1;min-width:200px;max-width:320px;}
+  .search-wrap input{width:100%;background:var(--surface);border:1px solid var(--border);border-radius:8px;padding:9px 12px 9px 34px;color:var(--text);font-size:0.88rem;outline:none;font-family:'DM Sans',sans-serif;}
+  .search-wrap input:focus{border-color:var(--accent);}
+  .search-icon{position:absolute;left:10px;top:50%;transform:translateY(-50%);color:var(--muted);}
+  select.filter{background:var(--surface);border:1px solid var(--border);border-radius:8px;padding:9px 12px;color:var(--text);font-size:0.85rem;outline:none;cursor:pointer;font-family:'DM Sans',sans-serif;}
+  .table-wrap{padding:0 2rem 2rem;overflow-x:auto;}
+  table{width:100%;border-collapse:collapse;font-size:0.875rem;}
+  thead tr{border-bottom:1px solid var(--border);}
+  th{text-align:left;padding:10px 12px;color:var(--muted);font-size:0.7rem;text-transform:uppercase;letter-spacing:0.08em;font-weight:700;}
+  tbody tr{border-bottom:1px solid #16161f;cursor:pointer;transition:background .1s;}
+  tbody tr:hover{background:var(--surface);}
+  td{padding:11px 12px;vertical-align:middle;}
+  .count-info{padding:0 2rem 0.5rem;color:var(--muted);font-size:0.78rem;}
+  .badge{display:inline-block;padding:3px 10px;border-radius:999px;font-size:0.7rem;font-weight:700;white-space:nowrap;}
+  .badge-pendiente{background:#3b2a05;color:#fbbf24;}
+  .badge-aceptada{background:#052e16;color:#4ade80;}
+  .badge-rechazada{background:#2d0a0a;color:#f87171;}
+  .badge-vencida{background:#1f1f1f;color:#6b6b8a;}
+  .overlay{position:fixed;inset:0;background:rgba(0,0,0,.78);z-index:200;display:flex;align-items:center;justify-content:center;padding:1rem;}
+  .modal{background:var(--surface);border:1px solid var(--border);border-radius:16px;width:100%;max-width:700px;max-height:94vh;overflow-y:auto;padding:2rem;}
+  .modal h2{font-family:'Syne',sans-serif;font-weight:800;font-size:1.2rem;margin-bottom:1.5rem;}
+  .form-section{margin-bottom:1.25rem;}
+  .fsec-title{font-size:0.7rem;color:var(--muted);text-transform:uppercase;letter-spacing:0.1em;font-weight:700;margin-bottom:0.75rem;padding-bottom:6px;border-bottom:1px solid var(--border);}
+  .form-grid{display:grid;grid-template-columns:1fr 1fr;gap:0 1rem;}
+  .field{margin-bottom:1rem;}
+  .field label{display:block;font-size:0.7rem;color:var(--muted);margin-bottom:4px;text-transform:uppercase;letter-spacing:0.08em;}
+  .field input,.field select,.field textarea{width:100%;background:var(--surface2);border:1px solid var(--border);border-radius:7px;padding:9px 11px;color:var(--text);font-size:0.88rem;outline:none;font-family:'DM Sans',sans-serif;transition:border .15s;}
+  .field input:focus,.field select:focus,.field textarea:focus{border-color:var(--accent);}
+  .field textarea{resize:vertical;min-height:70px;}
+  .full{grid-column:1/-1;}
+  .item-header{display:grid;grid-template-columns:2fr 70px 110px 110px 36px;gap:6px;margin-bottom:4px;}
+  .item-header span{font-size:0.65rem;color:var(--muted);text-transform:uppercase;letter-spacing:0.08em;}
+  .item-row{display:grid;grid-template-columns:2fr 70px 110px 110px 36px;gap:6px;align-items:center;margin-bottom:6px;}
+  .item-row input{background:var(--surface2);border:1px solid var(--border);border-radius:6px;padding:7px 9px;color:var(--text);font-size:0.85rem;outline:none;font-family:'DM Sans',sans-serif;width:100%;}
+  .item-row input:focus{border-color:var(--accent);}
+  .btn-remove-item{background:#2d0a0a;color:#f87171;border:1px solid #7f1d1d;width:32px;height:32px;border-radius:6px;cursor:pointer;font-size:0.85rem;}
+  .btn-add-item{background:transparent;border:1px dashed var(--border);color:var(--muted);padding:7px 16px;border-radius:7px;cursor:pointer;font-size:0.83rem;font-family:'DM Sans',sans-serif;transition:all .15s;margin-top:4px;}
+  .btn-add-item:hover{border-color:var(--accent);color:var(--accent);}
+  .totals-box{background:var(--surface2);border-radius:10px;padding:14px 16px;margin-bottom:1rem;}
+  .total-row{display:flex;justify-content:space-between;padding:4px 0;font-size:0.88rem;color:var(--muted);}
+  .total-row.main{border-top:1px solid var(--border);margin-top:6px;padding-top:10px;font-size:1.05rem;font-weight:800;color:var(--text);}
+  .total-row.main span:last-child{color:var(--accent);font-size:1.1rem;}
+  .modal-footer{display:flex;gap:0.75rem;justify-content:flex-end;margin-top:1rem;flex-wrap:wrap;}
+  .btn-cancel{background:var(--surface2);color:var(--muted);border:1px solid var(--border);padding:8px 20px;border-radius:7px;cursor:pointer;font-size:0.88rem;font-family:'DM Sans',sans-serif;}
+  .btn-save{background:var(--accent);color:#000;border:none;padding:8px 22px;border-radius:7px;cursor:pointer;font-weight:700;font-size:0.88rem;font-family:'Syne',sans-serif;}
+  .btn-save:hover{background:var(--accent2);}
+  .btn-wa{background:#128c7e;color:#fff;border:none;padding:8px 16px;border-radius:7px;cursor:pointer;font-weight:700;font-size:0.85rem;font-family:'Syne',sans-serif;}
+  .btn-print{background:#22c55e;color:#000;border:none;padding:8px 16px;border-radius:7px;cursor:pointer;font-weight:700;font-size:0.85rem;font-family:'Syne',sans-serif;}
+  .btn-danger{background:#2d0a0a;color:#f87171;border:1px solid #7f1d1d;padding:8px 16px;border-radius:7px;cursor:pointer;font-size:0.85rem;font-family:'DM Sans',sans-serif;}
+  .detail-header{display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:1.5rem;flex-wrap:wrap;gap:.75rem;}
+  .info-grid2{display:grid;grid-template-columns:1fr 1fr;gap:0.6rem;margin-bottom:1.25rem;}
+  .info-card{background:var(--surface2);border-radius:8px;padding:10px 12px;}
+  .info-card .k{font-size:0.65rem;color:var(--muted);text-transform:uppercase;letter-spacing:0.08em;margin-bottom:2px;}
+  .info-card .v{font-size:0.9rem;font-weight:600;}
+  .login-screen{position:fixed;inset:0;background:var(--bg);z-index:999;display:flex;align-items:center;justify-content:center;padding:1rem;}
+  .login-box{background:var(--surface);border:1px solid var(--border);border-radius:16px;padding:2.5rem 2rem;width:100%;max-width:380px;text-align:center;}
+  .login-box input{width:100%;background:var(--surface2);border:1px solid var(--border);border-radius:8px;padding:12px;color:var(--text);font-size:1rem;outline:none;text-align:center;letter-spacing:.1em;font-family:'DM Sans',sans-serif;margin-bottom:.75rem;}
+  .login-box input:focus{border-color:var(--accent);}
+  .spinner{width:28px;height:28px;border:3px solid var(--border);border-top-color:var(--accent);border-radius:50%;animation:spin .7s linear infinite;margin:3rem auto;}
+  @keyframes spin{to{transform:rotate(360deg);}}
+  .empty{text-align:center;padding:3rem;color:var(--muted);}
+  .toast{position:fixed;bottom:1.5rem;left:50%;transform:translateX(-50%);background:var(--green);color:#000;padding:10px 24px;border-radius:999px;font-weight:700;font-size:.88rem;z-index:999;animation:fadeup .3s ease;white-space:nowrap;}
+  @keyframes fadeup{from{opacity:0;transform:translate(-50%,10px);}to{opacity:1;transform:translate(-50%,0);}}
+  @media(max-width:600px){
+    .stats,.toolbar,.table-wrap,.count-info{padding-left:1rem;padding-right:1rem;}
+    .header{padding:0 1rem;}
+    .form-grid{grid-template-columns:1fr;}
+    .info-grid2{grid-template-columns:1fr;}
+    .item-row,.item-header{grid-template-columns:1.5fr 55px 90px 90px 32px;}
+  }
+</style>
+</head>
+<body>
+
+<!-- LOGIN -->
+<div class="login-screen" id="login-screen">
+  <div class="login-box">
+    <div style="font-size:2rem;margin-bottom:.5rem">⚡</div>
+    <div style="font-family:'Syne',sans-serif;font-weight:800;font-size:1.2rem;margin-bottom:4px">Baterías Récord</div>
+    <div style="font-size:.7rem;color:var(--muted);letter-spacing:.15em;text-transform:uppercase;margin-bottom:2rem">Sistema de Cotizaciones</div>
+    <input id="login-pass" type="password" placeholder="Contraseña" onkeydown="if(event.key==='Enter')tryLogin()"/>
+    <div id="login-error" style="display:none;color:#ef4444;font-size:.82rem;margin-bottom:.75rem">⚠️ Contraseña incorrecta.</div>
+    <button class="btn-save" style="width:100%;padding:12px" onclick="tryLogin()">Ingresar</button>
+  </div>
+</div>
+
+<!-- APP -->
+<div id="app" style="display:none">
+  <div class="header">
+    <div class="logo">
+      <div class="logo-icon">📋</div>
+      <div>
+        <div class="logo-text">Cotizaciones</div>
+        <div class="logo-sub">Baterías Récord Battery Center</div>
+      </div>
+    </div>
+    <div style="display:flex;gap:.75rem;align-items:center">
+      <a href="index.html" style="background:var(--surface2);color:var(--muted);border:1px solid var(--border);padding:8px 16px;border-radius:8px;text-decoration:none;font-size:.83rem">← Órdenes</a>
+      <button class="btn-new" onclick="openForm()">+ Nueva Cotización</button>
+    </div>
+  </div>
+  <div class="stats">
+    <div class="stat-card"><div class="stat-num" id="st-total" style="color:var(--accent)">—</div><div class="stat-label">Total</div></div>
+    <div class="stat-card"><div class="stat-num" id="st-pend" style="color:#fbbf24">—</div><div class="stat-label">Pendientes</div></div>
+    <div class="stat-card"><div class="stat-num" id="st-acept" style="color:#4ade80">—</div><div class="stat-label">Aceptadas</div></div>
+    <div class="stat-card"><div class="stat-num" id="st-valor" style="color:var(--accent)">—</div><div class="stat-label">Valor aceptado</div></div>
+  </div>
+  <div class="toolbar">
+    <div class="search-wrap">
+      <span class="search-icon">🔍</span>
+      <input type="text" id="search" placeholder="Buscar cliente, vehículo…" oninput="renderTable()"/>
+    </div>
+    <select class="filter" id="filter-status" onchange="renderTable()">
+      <option value="">Todos los estados</option>
+      <option>Pendiente</option><option>Aceptada</option>
+      <option>Rechazada</option><option>Vencida</option>
+    </select>
+  </div>
+  <div class="count-info" id="count-info"></div>
+  <div class="table-wrap">
+    <table>
+      <thead><tr>
+        <th>N°</th><th>Cliente</th><th>Vehículo</th>
+        <th>Total</th><th>Estado</th><th>Vence</th><th>Vendedor</th><th></th>
+      </tr></thead>
+      <tbody id="tbody"></tbody>
+    </table>
+    <div id="loading" class="spinner"></div>
+    <div id="empty" class="empty" style="display:none">Sin cotizaciones encontradas.</div>
+  </div>
+</div>
+
+<!-- FORM MODAL -->
+<div class="overlay" id="modal-form" style="display:none" onclick="closeForm(event)">
+  <div class="modal" onclick="event.stopPropagation()">
+    <h2 id="form-title">Nueva Cotización</h2>
+    <div class="form-section">
+      <div class="fsec-title">Datos del cliente</div>
+      <div class="form-grid">
+        <div class="field"><label>Cliente *</label><input id="f-client" placeholder="Nombre o empresa"/></div>
+        <div class="field"><label>Teléfono</label><input id="f-phone" placeholder="Número de contacto"/></div>
+        <div class="field"><label>Correo electrónico</label><input id="f-email" placeholder="correo@ejemplo.com"/></div>
+        <div class="field"><label>NIT / Cédula</label><input id="f-nit" placeholder="Identificación"/></div>
+        <div class="field full"><label>Vehículo / Aplicación</label><input id="f-vehicle" placeholder="Ej: Toyota Hilux 2021, Planta eléctrica 5kW…"/></div>
+      </div>
+    </div>
+    <div class="form-section">
+      <div class="fsec-title">Productos / Servicios</div>
+      <div class="item-header">
+        <span>Descripción</span><span>Cant.</span><span>Precio unit.</span><span>Subtotal</span><span></span>
+      </div>
+      <div id="items-container"></div>
+      <button class="btn-add-item" onclick="addItem()">+ Agregar ítem</button>
+    </div>
+    <div class="form-section">
+      <div class="totals-box">
+        <div class="total-row"><span>Subtotal (sin IVA)</span><span id="t-sub">$0</span></div>
+        <div class="total-row"><span>IVA (19%)</span><span id="t-iva">$0</span></div>
+        <div class="total-row main"><span>TOTAL</span><span id="t-total">$0</span></div>
+      </div>
+    </div>
+    <div class="form-section">
+      <div class="fsec-title">Información adicional</div>
+      <div class="form-grid">
+        <div class="field"><label>Vendedor</label><input id="f-seller" placeholder="Nombre del vendedor"/></div>
+        <div class="field"><label>Estado</label>
+          <select id="f-status"><option>Pendiente</option><option>Aceptada</option><option>Rechazada</option></select>
+        </div>
+        <div class="field full"><label>Notas / Condiciones</label>
+          <textarea id="f-notes" placeholder="Condiciones especiales, garantías incluidas, forma de pago…"></textarea>
+        </div>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn-cancel" onclick="closeForm()">Cancelar</button>
+      <button class="btn-save" id="btn-save-quote" onclick="saveQuote()">Guardar Cotización</button>
+    </div>
+  </div>
+</div>
+
+<!-- DETAIL MODAL -->
+<div class="overlay" id="modal-detail" style="display:none" onclick="closeDetail(event)">
+  <div class="modal" onclick="event.stopPropagation()">
+    <div class="detail-header">
+      <div>
+        <div style="font-size:.7rem;color:var(--muted);font-family:monospace;margin-bottom:3px" id="d-num"></div>
+        <div style="font-family:'Syne',sans-serif;font-weight:800;font-size:1.25rem" id="d-client"></div>
+        <div style="color:var(--muted);font-size:.85rem;margin-top:2px" id="d-phone"></div>
+      </div>
+      <div style="display:flex;gap:6px;flex-wrap:wrap;justify-content:flex-end" id="d-badges"></div>
+    </div>
+    <div class="info-grid2" id="d-grid"></div>
+    <div id="d-items" style="margin-bottom:1.25rem"></div>
+    <div id="d-totals" style="margin-bottom:1.25rem"></div>
+    <div id="d-notes" style="margin-bottom:1.25rem"></div>
+    <div class="modal-footer" style="justify-content:space-between">
+      <button class="btn-danger" onclick="deleteQuote()">Eliminar</button>
+      <div style="display:flex;gap:.75rem;flex-wrap:wrap">
+        <button class="btn-wa" onclick="sendWhatsApp()">📱 WhatsApp</button>
+        <button class="btn-print" onclick="printQuote()">🖨️ Imprimir</button>
+        <button class="btn-cancel" onclick="closeDetail()">Cerrar</button>
+        <button class="btn-save" onclick="editFromDetail()">Editar</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+const PASSWORD="Julio17647779";
+const SUPA_URL="https://aavvptuojuxrlqwbbnbu.supabase.co";
+const SUPA_KEY="sb_publishable_83BuqtayE922CnSjM27Bmg_anpKra4f";
+const HEADERS={"Content-Type":"application/json","apikey":SUPA_KEY,"Authorization":"Bearer "+SUPA_KEY};
+const IVA=0.19;
+const NEGOCIO={nombre:"Baterías Récord Battery Center",nit:"NIT 40.776.269-1",dir:"Calle 21 #5-44, La Libertad",tel:"322 701 9611 — 350 804 6004",dias:30};
+
+// LOGIN
+function tryLogin(){
+  if(document.getElementById("login-pass").value===PASSWORD){
+    sessionStorage.setItem("br_cot","ok");
+    document.getElementById("login-screen").style.display="none";
+    document.getElementById("app").style.display="block";
+    loadQuotes();
+  } else {
+    document.getElementById("login-error").style.display="block";
+    document.getElementById("login-pass").value="";
+    setTimeout(()=>document.getElementById("login-error").style.display="none",2000);
+  }
+}
+if(sessionStorage.getItem("br_cot")==="ok"){
+  document.getElementById("login-screen").style.display="none";
+  document.getElementById("app").style.display="block";
+}
+
+// STATE
+let quotes=[],editingId=null,viewingId=null,items=[];
+
+// DB
+async function db(path,opts={}){
+  const r=await fetch(SUPA_URL+"/rest/v1/"+path,{headers:HEADERS,...opts});
+  if(!r.ok){const e=await r.text();throw new Error(e);}
+  return r.status===204?null:r.json();
+}
+
+// UTILS
+const fmtD=iso=>iso?new Date(iso).toLocaleDateString("es-CO",{day:"2-digit",month:"2-digit",year:"numeric"}):"—";
+const fmtM=n=>new Intl.NumberFormat("es-CO",{style:"currency",currency:"COP",minimumFractionDigits:0}).format(n||0);
+const nowISO=()=>new Date().toISOString();
+const uid=()=>Math.random().toString(36).slice(2,9);
+function expiry(created){const d=new Date(created||Date.now());d.setDate(d.getDate()+NEGOCIO.dias);return d.toISOString();}
+function getStatus(q){if(q.status==="Aceptada"||q.status==="Rechazada")return q.status;if(q.expiry&&new Date(q.expiry)<new Date())return "Vencida";return "Pendiente";}
+function toast(msg){const el=document.createElement("div");el.className="toast";el.textContent=msg;document.body.appendChild(el);setTimeout(()=>el.remove(),2800);}
+
+// LOAD
+async function loadQuotes(){
+  document.getElementById("loading").style.display="block";
+  document.getElementById("empty").style.display="none";
+  document.getElementById("tbody").innerHTML="";
+  try{
+    quotes=await db("quotes?order=created.desc&limit=200");
+    renderStats();renderTable();
+  }catch(e){
+    document.getElementById("loading").innerHTML=`<div style="color:#ef4444;text-align:center;padding:2rem">Error: ${e.message}<br><small>Ejecuta el SQL de creación de tabla en Supabase</small></div>`;
+  }
+}
+
+// STATS
+function renderStats(){
+  document.getElementById("st-total").textContent=quotes.length;
+  document.getElementById("st-pend").textContent=quotes.filter(q=>getStatus(q)==="Pendiente").length;
+  document.getElementById("st-acept").textContent=quotes.filter(q=>getStatus(q)==="Aceptada").length;
+  document.getElementById("st-valor").textContent=fmtM(quotes.filter(q=>getStatus(q)==="Aceptada").reduce((s,q)=>s+(q.total||0),0));
+}
+
+// TABLE
+const BC={Pendiente:"badge-pendiente",Aceptada:"badge-aceptada",Rechazada:"badge-rechazada",Vencida:"badge-vencida"};
+function renderTable(){
+  const q=document.getElementById("search").value.toLowerCase();
+  const fs=document.getElementById("filter-status").value;
+  const f=quotes.filter(o=>{
+    const s=getStatus(o);
+    return(!q||[o.client,o.phone,o.vehicle,o.seller,String(o.quote_num||"")].some(v=>(v||"").toLowerCase().includes(q)))&&(!fs||s===fs);
+  });
+  document.getElementById("loading").style.display="none";
+  document.getElementById("count-info").textContent=`${f.length} cotización(es)`;
+  if(!f.length){document.getElementById("empty").style.display="block";document.getElementById("tbody").innerHTML="";return;}
+  document.getElementById("empty").style.display="none";
+  document.getElementById("tbody").innerHTML=f.map(o=>{
+    const s=getStatus(o);
+    return`<tr onclick="openDetail(${o.id})">
+      <td style="font-family:monospace;color:var(--muted);font-size:.78rem">COT-${String(o.quote_num||o.id).padStart(4,"0")}</td>
+      <td><div style="font-weight:600">${o.client||"—"}</div><div style="color:var(--muted);font-size:.78rem">${o.phone||""}</div></td>
+      <td style="color:#93c5fd;font-size:.85rem">${o.vehicle||"—"}</td>
+      <td style="font-weight:700;color:var(--accent)">${fmtM(o.total)}</td>
+      <td><span class="badge ${BC[s]||''}">${s}</span></td>
+      <td style="color:var(--muted);font-size:.8rem">${fmtD(o.expiry)}</td>
+      <td style="color:var(--muted);font-size:.85rem">${o.seller||"—"}</td>
+      <td><button onclick="event.stopPropagation();openForm(${o.id})" style="background:var(--surface2);color:var(--muted);border:none;padding:5px 10px;border-radius:5px;cursor:pointer;font-size:.78rem">Editar</button></td>
+    </tr>`;
+  }).join("");
+}
+
+// ITEMS
+function addItem(desc="",qty=1,price=0){items.push({id:uid(),desc,qty,price});renderItems();}
+function removeItem(id){items=items.filter(i=>i.id!==id);renderItems();}
+function updateItem(id,f,v){items=items.map(i=>i.id===id?{...i,[f]:f==="qty"||f==="price"?parseFloat(v)||0:v}:i);renderTotals();}
+function renderItems(){
+  document.getElementById("items-container").innerHTML=items.map(it=>`
+    <div class="item-row">
+      <input value="${it.desc}" placeholder="Ej: Batería Bosch S4 60Ah 12V" oninput="updateItem('${it.id}','desc',this.value)"/>
+      <input type="number" value="${it.qty}" min="1" oninput="updateItem('${it.id}','qty',this.value)" style="text-align:center"/>
+      <input type="number" value="${it.price}" min="0" placeholder="0" oninput="updateItem('${it.id}','price',this.value)"/>
+      <input readonly value="${fmtM(it.qty*it.price)}" style="background:var(--surface);color:var(--accent);font-weight:700"/>
+      <button class="btn-remove-item" onclick="removeItem('${it.id}')">✕</button>
+    </div>`).join("");
+  renderTotals();
+}
+function renderTotals(){
+  const sub=items.reduce((s,i)=>s+(i.qty*i.price),0);
+  const iva=sub*IVA,total=sub+iva;
+  document.getElementById("t-sub").textContent=fmtM(sub);
+  document.getElementById("t-iva").textContent=fmtM(iva);
+  document.getElementById("t-total").textContent=fmtM(total);
+  return{sub,iva,total};
+}
+
+// FORM
+function openForm(id=null){
+  editingId=id;items=[];
+  document.getElementById("form-title").textContent=id?"Editar Cotización":"Nueva Cotización";
+  if(id){
+    const o=quotes.find(x=>x.id===id);if(!o)return;
+    document.getElementById("f-client").value=o.client||"";
+    document.getElementById("f-phone").value=o.phone||"";
+    document.getElementById("f-email").value=o.email||"";
+    document.getElementById("f-nit").value=o.client_nit||"";
+    document.getElementById("f-vehicle").value=o.vehicle||"";
+    document.getElementById("f-seller").value=o.seller||"";
+    document.getElementById("f-status").value=o.status||"Pendiente";
+    document.getElementById("f-notes").value=o.notes||"";
+    try{items=JSON.parse(o.items||"[]");}catch{}
+  } else {
+    ["f-client","f-phone","f-email","f-nit","f-vehicle","f-seller","f-notes"].forEach(i=>document.getElementById(i).value="");
+    document.getElementById("f-status").value="Pendiente";
+    items=[{id:uid(),desc:"",qty:1,price:0}];
+  }
+  renderItems();
+  document.getElementById("modal-detail").style.display="none";
+  document.getElementById("modal-form").style.display="flex";
+}
+function closeForm(e){if(e&&e.target!==document.getElementById("modal-form"))return;document.getElementById("modal-form").style.display="none";editingId=null;}
+
+async function saveQuote(){
+  const client=document.getElementById("f-client").value.trim();
+  if(!client){alert("El nombre del cliente es obligatorio.");return;}
+  const{sub,iva,total}=renderTotals();
+  const data={
+    client,phone:document.getElementById("f-phone").value.trim(),
+    email:document.getElementById("f-email").value.trim(),
+    client_nit:document.getElementById("f-nit").value.trim(),
+    vehicle:document.getElementById("f-vehicle").value.trim(),
+    seller:document.getElementById("f-seller").value.trim(),
+    status:document.getElementById("f-status").value,
+    notes:document.getElementById("f-notes").value.trim(),
+    items:JSON.stringify(items),subtotal:sub,iva,total,updated:nowISO(),
+  };
+  const btn=document.getElementById("btn-save-quote");
+  btn.textContent="Guardando…";btn.disabled=true;
+  try{
+    if(editingId){
+      const res=await db(`quotes?id=eq.${editingId}`,{method:"PATCH",headers:{...HEADERS,"Prefer":"return=representation"},body:JSON.stringify(data)});
+      const fresh=Array.isArray(res)?res[0]:res;
+      quotes=quotes.map(q=>q.id===editingId?{...q,...(fresh||data)}:q);
+    } else {
+      const nums=quotes.map(x=>x.quote_num||0).filter(n=>n>0);
+      data.quote_num=nums.length>0?Math.max(...nums)+1:1;
+      data.created=nowISO();data.expiry=expiry(data.created);
+      const res=await db("quotes",{method:"POST",headers:{...HEADERS,"Prefer":"return=representation"},body:JSON.stringify(data)});
+      const nq=Array.isArray(res)?res[0]:res;
+      if(nq)quotes=[nq,...quotes];
+    }
+    document.getElementById("modal-form").style.display="none";
+    editingId=null;renderStats();renderTable();toast("✅ Cotización guardada");
+  }catch(e){alert("Error: "+e.message);}
+  finally{btn.textContent="Guardar Cotización";btn.disabled=false;}
+}
+
+// DETAIL
+function openDetail(id){viewingId=id;renderDetail();document.getElementById("modal-detail").style.display="flex";}
+function closeDetail(e){if(e&&e.target!==document.getElementById("modal-detail"))return;document.getElementById("modal-detail").style.display="none";viewingId=null;}
+function editFromDetail(){document.getElementById("modal-detail").style.display="none";openForm(viewingId);}
+
+function renderDetail(){
+  const o=quotes.find(x=>x.id===viewingId);if(!o)return;
+  const s=getStatus(o);
+  const qn=`COT-${String(o.quote_num||o.id).padStart(4,"0")}`;
+  document.getElementById("d-num").textContent=qn;
+  document.getElementById("d-client").textContent=o.client||"—";
+  document.getElementById("d-phone").textContent=o.phone||"";
+  document.getElementById("d-badges").innerHTML=`<span class="badge ${BC[s]||''}">${s}</span>`;
+  document.getElementById("d-grid").innerHTML=[
+    ["Vehículo / Aplicación",o.vehicle],["NIT / Cédula",o.client_nit],
+    ["Correo",o.email],["Vendedor",o.seller],
+    ["Fecha emisión",fmtD(o.created)],["Válida hasta",fmtD(o.expiry)]
+  ].map(([k,v])=>`<div class="info-card"><div class="k">${k}</div><div class="v">${v||"—"}</div></div>`).join("");
+  let its=[];try{its=JSON.parse(o.items||"[]");}catch{}
+  document.getElementById("d-items").innerHTML=`
+    <div style="font-size:.68rem;color:var(--muted);text-transform:uppercase;letter-spacing:.08em;margin-bottom:8px">Productos / Servicios</div>
+    <table style="width:100%;border-collapse:collapse;font-size:.85rem">
+      <thead><tr style="border-bottom:1px solid var(--border)">
+        <th style="text-align:left;padding:6px 8px;color:var(--muted);font-size:.68rem;text-transform:uppercase">Descripción</th>
+        <th style="text-align:center;padding:6px 8px;color:var(--muted);font-size:.68rem;text-transform:uppercase">Cant.</th>
+        <th style="text-align:right;padding:6px 8px;color:var(--muted);font-size:.68rem;text-transform:uppercase">P. Unit.</th>
+        <th style="text-align:right;padding:6px 8px;color:var(--muted);font-size:.68rem;text-transform:uppercase">Subtotal</th>
+      </tr></thead>
+      <tbody>${its.map(i=>`<tr style="border-bottom:1px solid #16161f">
+        <td style="padding:8px">${i.desc||"—"}</td>
+        <td style="padding:8px;text-align:center">${i.qty}</td>
+        <td style="padding:8px;text-align:right">${fmtM(i.price)}</td>
+        <td style="padding:8px;text-align:right;font-weight:700;color:var(--accent)">${fmtM(i.qty*i.price)}</td>
+      </tr>`).join("")}</tbody>
+    </table>`;
+  document.getElementById("d-totals").innerHTML=`
+    <div class="totals-box">
+      <div class="total-row"><span>Subtotal</span><span>${fmtM(o.subtotal)}</span></div>
+      <div class="total-row"><span>IVA (19%)</span><span>${fmtM(o.iva)}</span></div>
+      <div class="total-row main"><span>TOTAL</span><span>${fmtM(o.total)}</span></div>
+    </div>`;
+  document.getElementById("d-notes").innerHTML=o.notes?`<div style="background:var(--surface2);border-radius:8px;padding:12px"><div style="font-size:.68rem;color:var(--muted);text-transform:uppercase;margin-bottom:5px">Notas</div><div style="font-size:.88rem;color:#b0b0c8;line-height:1.6">${o.notes}</div></div>`:"";
+}
+
+async function deleteQuote(){
+  if(!confirm("¿Eliminar esta cotización?"))return;
+  try{
+    await db(`quotes?id=eq.${viewingId}`,{method:"DELETE"});
+    quotes=quotes.filter(q=>q.id!==viewingId);
+    document.getElementById("modal-detail").style.display="none";
+    viewingId=null;renderStats();renderTable();toast("🗑️ Eliminada");
+  }catch(e){alert("Error: "+e.message);}
+}
+
+// PRINT
+function buildHTML(o){
+  let its=[];try{its=JSON.parse(o.items||"[]");}catch{}
+  const s=getStatus(o);
+  const qn=`COT-${String(o.quote_num||o.id).padStart(4,"0")}`;
+  const sc={Pendiente:"#92400e",Aceptada:"#14532d",Rechazada:"#7f1d1d",Vencida:"#374151"};
+  const st={Pendiente:"#fbbf24",Aceptada:"#4ade80",Rechazada:"#f87171",Vencida:"#9ca3af"};
+  return`<div style="background:#fff;color:#111;font-family:Arial,sans-serif;max-width:148mm;margin:0 auto;padding:16px 18px;font-size:.82rem">
+    <div style="display:flex;align-items:flex-start;justify-content:space-between;border-bottom:2.5px solid #f5c518;padding-bottom:12px;margin-bottom:12px;gap:8px">
+      <div>
+        <img src="https://aavvptuojuxrlqwbbnbu.supabase.co/storage/v1/object/public/photos/logo-record.png" onerror="this.style.display='none'" style="height:46px;width:auto;object-fit:contain;display:block;margin-bottom:4px"/>
+        <div style="font-size:.58rem;color:#555">${NEGOCIO.nit}</div>
+        <div style="font-size:.58rem;color:#555">${NEGOCIO.dir}</div>
+        <div style="font-size:.58rem;color:#555">${NEGOCIO.tel}</div>
+      </div>
+      <div style="text-align:right">
+        <div style="background:#111;color:#f5c518;padding:6px 12px;border-radius:6px;margin-bottom:5px">
+          <div style="font-size:.55rem;letter-spacing:2px;text-transform:uppercase">Cotización</div>
+          <div style="font-size:1rem;font-weight:900">${qn}</div>
+        </div>
+        <div style="background:${sc[s]};color:${st[s]};padding:3px 10px;border-radius:4px;font-size:.62rem;font-weight:700">${s}</div>
+      </div>
+    </div>
+    <div style="display:flex;gap:1rem;margin-bottom:12px;font-size:.72rem;flex-wrap:wrap">
+      <span><span style="color:#888">Emisión: </span><strong>${fmtD(o.created)}</strong></span>
+      <span><span style="color:#888">Válida hasta: </span><strong>${fmtD(o.expiry)}</strong></span>
+      <span><span style="color:#888">Vendedor: </span><strong>${o.seller||"—"}</strong></span>
+    </div>
+    <div style="background:#f9f9f9;border-left:3px solid #f5c518;padding:8px 10px;margin-bottom:12px;border-radius:0 5px 5px 0">
+      <div style="font-size:.58rem;color:#888;text-transform:uppercase;letter-spacing:1px;margin-bottom:3px">Cliente</div>
+      <div style="font-size:.88rem;font-weight:700">${o.client||"—"}</div>
+      <div style="font-size:.72rem;color:#555;margin-top:2px">${o.client_nit?`NIT/CC: ${o.client_nit} · `:""}${o.phone||""}${o.email?` · ${o.email}`:""}</div>
+      ${o.vehicle?`<div style="font-size:.72rem;color:#333;margin-top:2px">🚗 ${o.vehicle}</div>`:""}
+    </div>
+    <table style="width:100%;border-collapse:collapse;margin-bottom:12px;font-size:.74rem">
+      <thead><tr style="background:#111;color:#fff">
+        <th style="padding:5px 7px;text-align:left">Descripción</th>
+        <th style="padding:5px 7px;text-align:center;width:36px">Cant.</th>
+        <th style="padding:5px 7px;text-align:right;width:84px">P. Unit.</th>
+        <th style="padding:5px 7px;text-align:right;width:84px">Subtotal</th>
+      </tr></thead>
+      <tbody>${its.map((i,ix)=>`<tr style="background:${ix%2===0?"#fff":"#f9f9f9"};border-bottom:1px solid #eee">
+        <td style="padding:5px 7px">${i.desc||"—"}</td>
+        <td style="padding:5px 7px;text-align:center">${i.qty}</td>
+        <td style="padding:5px 7px;text-align:right">${fmtM(i.price)}</td>
+        <td style="padding:5px 7px;text-align:right;font-weight:700">${fmtM(i.qty*i.price)}</td>
+      </tr>`).join("")}</tbody>
+    </table>
+    <div style="display:flex;justify-content:flex-end;margin-bottom:12px">
+      <table style="font-size:.75rem;min-width:180px">
+        <tr><td style="padding:3px 7px;color:#666">Subtotal</td><td style="padding:3px 7px;text-align:right;font-weight:600">${fmtM(o.subtotal)}</td></tr>
+        <tr><td style="padding:3px 7px;color:#666">IVA (19%)</td><td style="padding:3px 7px;text-align:right;font-weight:600">${fmtM(o.iva)}</td></tr>
+        <tr style="border-top:2px solid #111">
+          <td style="padding:5px 7px;font-weight:900;font-size:.88rem">TOTAL</td>
+          <td style="padding:5px 7px;text-align:right;font-weight:900;font-size:.95rem;color:#cc0000">${fmtM(o.total)}</td>
+        </tr>
+      </table>
+    </div>
+    ${o.notes?`<div style="background:#fffbe6;border:1px solid #f5c518;border-radius:4px;padding:7px 9px;margin-bottom:10px;font-size:.72rem"><strong>Notas:</strong> ${o.notes}</div>`:""}
+    <div style="background:#f5f5f5;border-radius:4px;padding:6px 9px;margin-bottom:10px;font-size:.68rem;color:#555;text-align:center">
+      Esta cotización tiene validez de <strong>${NEGOCIO.dias} días</strong> a partir de la fecha de emisión.
+    </div>
+    <div style="display:flex;gap:2rem;margin-bottom:10px">
+      <div style="flex:1;text-align:center"><div style="height:24px;border-bottom:1px solid #333;margin-bottom:3px"></div><div style="font-size:.6rem;color:#666">Firma y aceptación del cliente</div></div>
+      <div style="flex:1;text-align:center"><div style="height:24px;border-bottom:1px solid #333;margin-bottom:3px"></div><div style="font-size:.6rem;color:#666">Autorizado: ${o.seller||"______________"}</div></div>
+    </div>
+    <div style="text-align:center;border-top:1px dashed #ccc;padding-top:7px;font-size:.62rem;color:#aaa">
+      Gracias por confiar en <strong>Baterías Récord Battery Center</strong> · ${NEGOCIO.nit}
+    </div>
+  </div>`;
+}
+
+function printQuote(){
+  const o=quotes.find(x=>x.id===viewingId);if(!o)return;
+  const win=window.open("","_blank","width=600,height=700");
+  win.document.write(`<!DOCTYPE html><html><head><title>COT-${String(o.quote_num||o.id).padStart(4,"0")}</title>
+  <style>*{box-sizing:border-box;margin:0;padding:0;}body{background:#e5e5e5;display:flex;justify-content:center;padding:20px;}
+  @media print{@page{size:A5 portrait;margin:6mm;}body{background:#fff;padding:0;display:block;}}</style>
+  </head><body>${buildHTML(o)}<script>window.onload=()=>{window.print();}<\/script></body></html>`);
+  win.document.close();
+}
+
+// WHATSAPP
+function sendWhatsApp(){
+  const o=quotes.find(x=>x.id===viewingId);if(!o)return;
+  const phone=(o.phone||"").replace(/\D/g,"");
+  const qn=`COT-${String(o.quote_num||o.id).padStart(4,"0")}`;
+  let its=[];try{its=JSON.parse(o.items||"[]");}catch{}
+  const lines=its.map(i=>`  • ${i.desc||"Ítem"} x${i.qty} → ${fmtM(i.qty*i.price)}`).join("\n");
+  const text=[
+    `⚡ *BATERÍAS RÉCORD Battery Center*`,
+    `📍 ${NEGOCIO.dir} | 📞 ${NEGOCIO.tel}`,
+    `${NEGOCIO.nit}`,``,
+    `📋 *COTIZACIÓN N° ${qn}*`,``,
+    `👤 Cliente: ${o.client||"—"}`,
+    o.vehicle?`🚗 ${o.vehicle}`:``,``,
+    `*Detalle:*`,lines,``,
+    `💵 Subtotal: ${fmtM(o.subtotal)}`,
+    `🧾 IVA (19%): ${fmtM(o.iva)}`,
+    `💰 *TOTAL: ${fmtM(o.total)}*`,``,
+    `📅 Válida hasta: ${fmtD(o.expiry)}`,
+    o.notes?`📝 ${o.notes}`:``,``,
+    `_Para aceptar o solicitar más información contáctenos._`,
+    `_Baterías Récord Battery Center_ 🔋`,
+  ].filter(l=>l!=="").join("\n");
+  const url=phone.length>=7?`https://wa.me/57${phone}?text=${encodeURIComponent(text)}`:`https://wa.me/?text=${encodeURIComponent(text)}`;
+  window.open(url,"_blank");
+}
+
+if(sessionStorage.getItem("br_cot")==="ok")loadQuotes();
+</script>
+</body>
+</html>

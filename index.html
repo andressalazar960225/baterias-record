@@ -554,9 +554,14 @@ async function saveOrder() {
   btn.textContent = "Guardando…"; btn.disabled = true;
   try {
     if (editingId) {
-      await updateOrder(editingId, data);
-      // Always refresh from Supabase to avoid data mixing between orders
-      await refreshOrder(editingId);
+      const updated = await updateOrder(editingId, data);
+      // Update in memory without full reload — fixes disappearing orders bug
+      const fresh = Array.isArray(updated) ? updated[0] : updated;
+      if (fresh) {
+        allOrders = allOrders.map(o => o.id === editingId ? { ...o, ...fresh } : o);
+      } else {
+        allOrders = allOrders.map(o => o.id === editingId ? { ...o, ...data } : o);
+      }
     } else {
       data.created = nowISO();
       data.reports = "[]";
@@ -707,13 +712,9 @@ async function refreshOrder(id) {
   try {
     const rows = await dbFetch(`orders?id=eq.${id}&select=*`);
     if (rows && rows.length > 0) {
-      // Replace the order in memory with fresh data from Supabase
-      const fresh = rows[0];
-      allOrders = allOrders.map(o => o.id === id ? fresh : o);
+      allOrders = allOrders.map(o => o.id === id ? rows[0] : o);
       renderStats();
       renderTable();
-      // If this order is currently open in detail view, refresh it too
-      if (viewingId === id) renderDetail();
     }
   } catch(e) { console.error("refreshOrder error:", e); }
 }

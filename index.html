@@ -180,7 +180,10 @@
       <div class="logo-sub">Sistema de Servicios</div>
     </div>
   </div>
-  <button class="btn-new" onclick="openForm()">+ Nueva Orden</button>
+  <div class="header-right" style="display:flex;gap:0.75rem;align-items:center;">
+    <a href="cotizaciones.html" style="background:#1e3a5f;color:#60a5fa;border:1px solid #1e40af;padding:8px 16px;border-radius:8px;text-decoration:none;font-size:0.83rem;font-weight:600;">📋 Cotizaciones</a>
+    <button class="btn-new" onclick="openForm()">+ Nueva Orden</button>
+  </div>
 </div>
 
 <!-- STATS -->
@@ -592,7 +595,9 @@ async function saveOrder() {
 // ── DETAIL ──────────────────────────────────────────────────────────────────
 function openDetail(id) {
   viewingId = id;
-  renderDetail();
+  // Always fetch fresh data when opening detail to show latest photos and notes
+  refreshOrder(id).then(() => renderDetail());
+  renderDetail(); // render immediately with cached data while fetching
   document.getElementById("modal-detail").style.display = "flex";
 }
 
@@ -623,11 +628,21 @@ function renderDetail() {
   try { photos = JSON.parse(o.photos||"[]"); } catch{}
   document.getElementById("d-photos").innerHTML = photos.length ? `
     <div style="margin-bottom:1.25rem;">
-      <div style="font-size:0.68rem;color:var(--muted);text-transform:uppercase;letter-spacing:0.08em;margin-bottom:8px;">Fotos de revisión (${photos.length})</div>
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;">
+        <div style="font-size:0.68rem;color:var(--muted);text-transform:uppercase;letter-spacing:0.08em;">Fotos de revisión (${photos.length})</div>
+        <button onclick="refreshOrder(${o.id}).then(()=>renderDetail())" style="background:var(--surface2);color:var(--muted);border:1px solid var(--border);padding:4px 10px;border-radius:5px;cursor:pointer;font-size:0.75rem;">🔄 Actualizar</button>
+      </div>
       <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:6px;">
         ${photos.map(url=>`<img src="${url}" style="width:100%;aspect-ratio:1;object-fit:cover;border-radius:7px;border:1px solid var(--border);cursor:pointer;" onclick="window.open('${url}','_blank')" />`).join("")}
       </div>
-    </div>` : "";
+    </div>` :
+    `<div style="margin-bottom:1.25rem;">
+      <div style="display:flex;justify-content:space-between;align-items:center;">
+        <div style="font-size:0.68rem;color:var(--muted);text-transform:uppercase;letter-spacing:0.08em;">Fotos de revisión (0)</div>
+        <button onclick="refreshOrder(${o.id}).then(()=>renderDetail())" style="background:var(--surface2);color:var(--muted);border:1px solid var(--border);padding:4px 10px;border-radius:5px;cursor:pointer;font-size:0.75rem;">🔄 Actualizar</button>
+      </div>
+      <div style="font-size:0.82rem;color:var(--muted);margin-top:6px;">Sin fotos aún. Agrega fotos escaneando el QR desde el celular.</div>
+    </div>`;
 
   // HISTORIAL DEL CLIENTE
   const clientName = (o.client||"").toLowerCase().trim();
@@ -684,9 +699,23 @@ async function addReport() {
   reports.push(`[${ts}] ${text}`);
   try {
     await updateOrder(viewingId, { reports: JSON.stringify(reports), updated: nowISO() });
-    await loadOrders();
+    // Refresh only this order in memory — fixes observations mixing between orders
+    await refreshOrder(viewingId);
     renderDetail();
   } catch(e) { alert("Error: " + e.message); }
+}
+
+// Fetch a single order from Supabase and update it in local memory
+// This ensures photos added from scan.html and reports are always up to date
+async function refreshOrder(id) {
+  try {
+    const rows = await dbFetch(`orders?id=eq.${id}&select=*`);
+    if (rows && rows.length > 0) {
+      allOrders = allOrders.map(o => o.id === id ? rows[0] : o);
+      renderStats();
+      renderTable();
+    }
+  } catch(e) { console.error("refreshOrder error:", e); }
 }
 
 async function deleteOrder() {

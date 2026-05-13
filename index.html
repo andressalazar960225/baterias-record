@@ -275,7 +275,8 @@
         <input id="f-tech" placeholder="Nombre del técnico" />
       </div>
       <div class="field full">
-        <label>Foto de recepción</label>
+        <label>Foto de recepción / diagnóstico</label>
+        <div id="f-existing-photos" style="display:none;background:var(--surface2);border-radius:7px;padding:10px;margin-bottom:8px;"></div>
         <div id="f-photo-preview" style="display:none;margin-bottom:8px;">
           <img id="f-photo-img" style="width:100%;max-height:180px;object-fit:cover;border-radius:7px;border:1px solid var(--border);" />
           <button onclick="clearFormPhoto()" style="margin-top:6px;background:#2d0a0a;color:#f87171;border:1px solid #7f1d1d;padding:5px 12px;border-radius:5px;cursor:pointer;font-size:0.8rem;">✕ Quitar foto</button>
@@ -523,11 +524,28 @@ function openForm(id=null) {
     document.getElementById("f-price").value   = o.price||"";
     document.getElementById("f-tech").value    = o.technician||"";
     document.getElementById("f-obs").value     = o.observations||"";
+    // Show existing photos in edit form
+    let existingPhotos = [];
+    try { existingPhotos = JSON.parse(o.photos||"[]"); } catch{}
+    const photoPreviewEl = document.getElementById("f-existing-photos");
+    if (existingPhotos.length > 0) {
+      photoPreviewEl.style.display = "block";
+      photoPreviewEl.innerHTML = `
+        <div style="font-size:0.7rem;color:var(--muted);text-transform:uppercase;letter-spacing:0.08em;margin-bottom:6px;">Fotos actuales (${existingPhotos.length})</div>
+        <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:6px;margin-bottom:8px;">
+          ${existingPhotos.map(url=>`<img src="${url}" style="width:100%;aspect-ratio:1;object-fit:cover;border-radius:6px;border:1px solid var(--border);cursor:pointer;" onclick="window.open('${url}','_blank')" />`).join("")}
+        </div>`;
+    } else {
+      photoPreviewEl.style.display = "none";
+      photoPreviewEl.innerHTML = "";
+    }
   } else {
     ["f-client","f-phone","f-brand","f-model","f-serial","f-obs","f-price","f-tech"].forEach(id=>document.getElementById(id).value="");
     document.getElementById("f-service").value="Revisión";
     document.getElementById("f-status").value="Recibido";
     document.getElementById("f-priority").value="Normal";
+    document.getElementById("f-existing-photos").style.display="none";
+    document.getElementById("f-existing-photos").innerHTML="";
     clearFormPhoto();
   }
   document.getElementById("modal-detail").style.display = "none";
@@ -560,43 +578,60 @@ async function saveOrder() {
   btn.textContent = "Guardando…"; btn.disabled = true;
   try {
     if (editingId) {
-      const savedId = editingId;
-      // Save to Supabase — use simple PATCH without return=representation to avoid 204 issues
+      const savedId  = editingId;
+      const existing = allOrders.find(o => o.id === savedId) || {};
+
+      // Upload new photo if one was selected in the form
+      if (formPhotoBlob) {
+        const photoUrl = await uploadFormPhoto(savedId);
+        if (photoUrl) {
+          let existingPhotos = [];
+          try { existingPhotos = JSON.parse(existing.photos||"[]"); } catch{}
+          existingPhotos.push(photoUrl);
+          data.photos = JSON.stringify(existingPhotos);
+        }
+      }
+
       await dbFetchSimple(`orders?id=eq.${savedId}`, {
-        method: "PATCH",
-        headers: { ...HEADERS },
+        method: "PATCH", headers: { ...HEADERS },
         body: JSON.stringify(data)
       });
-      // Update in memory with form data + keep existing fields (reports, photos, etc.)
-      const existing = allOrders.find(o => o.id === savedId) || {};
-      allOrders = allOrders.map(o => o.id === savedId ? { ...existing, ...data, id: savedId } : o);
+
+      // Merge into memory keeping all existing fields + new data
+      allOrders = allOrders.map(o => o.id === savedId
+        ? { ...existing, ...data, id: savedId }
+        : o
+      );
       document.getElementById("modal-form").style.display = "none";
       editingId = null;
       clearFormPhoto();
       renderStats();
       renderTable();
-      // Refresh from Supabase in background without blocking UI
+      // Refresh from Supabase in background
       refreshOrder(savedId);
     } else {
-      data.created = nowISO();
-      data.reports = "[]";
-      data.photos  = "[]";
-      const allNums = allOrders.map(x=>x.order_num||0).filter(n=>n>0);
+      data.created   = nowISO();
+      data.reports   = "[]";
+      data.photos    = "[]";
+      const allNums  = allOrders.map(x=>x.order_num||0).filter(n=>n>0);
       data.order_num = allNums.length > 0 ? Math.max(...allNums)+1 : 1;
       const inserted = await insertOrder(data);
       const newOrder = Array.isArray(inserted) ? inserted[0] : inserted;
-      if (formPhotoBlob && newOrder) {
-        const photoUrl = await uploadFormPhoto(newOrder.id);
-        if (photoUrl) {
-          const photos = [photoUrl];
-          await dbFetchSimple(`orders?id=eq.${newOrder.id}`, {
-            method: "PATCH", headers: { ...HEADERS },
-            body: JSON.stringify({ photos: JSON.stringify(photos) })
-          });
-          newOrder.photos = JSON.stringify(photos);
+      if (newOrder) {
+        // Upload reception photo if present and save URL
+        if (formPhotoBlob) {
+          const photoUrl = await uploadFormPhoto(newOrder.id);
+          if (photoUrl) {
+            const photosArr = [photoUrl];
+            await dbFetchSimple(`orders?id=eq.${newOrder.id}`, {
+              method: "PATCH", headers: { ...HEADERS },
+              body: JSON.stringify({ photos: JSON.stringify(photosArr) })
+            });
+            newOrder.photos = JSON.stringify(photosArr);
+          }
         }
+        allOrders = [newOrder, ...allOrders];
       }
-      if (newOrder) allOrders = [newOrder, ...allOrders];
       document.getElementById("modal-form").style.display = "none";
       editingId = null;
       clearFormPhoto();

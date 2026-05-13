@@ -494,7 +494,13 @@ function renderTable() {
       <td>${badge(o.status)}</td>
       <td><span style="color:${PRIORITY_COLOR[o.priority]||'#6b7280'};font-weight:700;font-size:0.8rem">● ${o.priority||"Normal"}</span></td>
       <td style="font-size:0.8rem">${fmt(o.updated)}${overdueTag}</td>
-      <td><button onclick="event.stopPropagation();openForm(${o.id})" style="background:var(--surface2);color:var(--muted);border:none;padding:5px 10px;border-radius:5px;cursor:pointer;font-size:0.78rem">Editar</button></td>
+      <td style="white-space:nowrap">
+        ${!completed ? `
+          ${o.status !== "Listo" ? `<button onclick="event.stopPropagation();quickStatus(${o.id},'Listo')" style="background:#052e16;color:#4ade80;border:1px solid #166534;padding:4px 9px;border-radius:5px;cursor:pointer;font-size:0.75rem;font-weight:700;margin-right:4px">✓ Listo</button>` : ""}
+          ${o.status !== "Entregado" ? `<button onclick="event.stopPropagation();quickStatus(${o.id},'Entregado')" style="background:#1e1b4b;color:#a78bfa;border:1px solid #4338ca;padding:4px 9px;border-radius:5px;cursor:pointer;font-size:0.75rem;font-weight:700;margin-right:4px">↗ Entregado</button>` : ""}
+        ` : ""}
+        <button onclick="event.stopPropagation();openForm(${o.id})" style="background:var(--surface2);color:var(--muted);border:none;padding:4px 9px;border-radius:5px;cursor:pointer;font-size:0.75rem">Editar</button>
+      </td>
     </tr>`;
   }).join("");
 }
@@ -554,14 +560,23 @@ async function saveOrder() {
   btn.textContent = "Guardando…"; btn.disabled = true;
   try {
     if (editingId) {
-      const updated = await updateOrder(editingId, data);
-      // Update in memory without full reload — fixes disappearing orders bug
-      const fresh = Array.isArray(updated) ? updated[0] : updated;
-      if (fresh) {
-        allOrders = allOrders.map(o => o.id === editingId ? { ...o, ...fresh } : o);
-      } else {
-        allOrders = allOrders.map(o => o.id === editingId ? { ...o, ...data } : o);
-      }
+      const savedId = editingId;
+      // Save to Supabase — use simple PATCH without return=representation to avoid 204 issues
+      await dbFetchSimple(`orders?id=eq.${savedId}`, {
+        method: "PATCH",
+        headers: { ...HEADERS },
+        body: JSON.stringify(data)
+      });
+      // Update in memory with form data + keep existing fields (reports, photos, etc.)
+      const existing = allOrders.find(o => o.id === savedId) || {};
+      allOrders = allOrders.map(o => o.id === savedId ? { ...existing, ...data, id: savedId } : o);
+      document.getElementById("modal-form").style.display = "none";
+      editingId = null;
+      clearFormPhoto();
+      renderStats();
+      renderTable();
+      // Refresh from Supabase in background without blocking UI
+      refreshOrder(savedId);
     } else {
       data.created = nowISO();
       data.reports = "[]";
@@ -570,27 +585,52 @@ async function saveOrder() {
       data.order_num = allNums.length > 0 ? Math.max(...allNums)+1 : 1;
       const inserted = await insertOrder(data);
       const newOrder = Array.isArray(inserted) ? inserted[0] : inserted;
-      // Upload reception photo if present
       if (formPhotoBlob && newOrder) {
         const photoUrl = await uploadFormPhoto(newOrder.id);
         if (photoUrl) {
           const photos = [photoUrl];
-          await updateOrder(newOrder.id, { photos: JSON.stringify(photos) });
+          await dbFetchSimple(`orders?id=eq.${newOrder.id}`, {
+            method: "PATCH", headers: { ...HEADERS },
+            body: JSON.stringify({ photos: JSON.stringify(photos) })
+          });
           newOrder.photos = JSON.stringify(photos);
         }
       }
       if (newOrder) allOrders = [newOrder, ...allOrders];
+      document.getElementById("modal-form").style.display = "none";
+      editingId = null;
+      clearFormPhoto();
+      renderStats();
+      renderTable();
     }
-    clearFormPhoto();
-    document.getElementById("modal-form").style.display = "none";
-    editingId = null;
-    renderStats();
-    renderTable();
   } catch(e) {
     alert("Error al guardar: " + e.message);
   } finally {
     btn.textContent = "Guardar Orden"; btn.disabled = false;
   }
+}
+
+async function quickStatus(id, newStatus) {
+  try {
+    await dbFetchSimple(`orders?id=eq.${id}`, {
+      method: "PATCH", headers: { ...HEADERS },
+      body: JSON.stringify({ status: newStatus, updated: nowISO() })
+    });
+    const existing = allOrders.find(o => o.id === id) || {};
+    allOrders = allOrders.map(o => o.id === id ? { ...o, status: newStatus, updated: nowISO() } : o);
+    renderStats();
+    renderTable();
+    // If detail is open for this order, refresh it too
+    if (viewingId === id) renderDetail();
+    toast(`✅ Orden marcada como ${newStatus}`);
+  } catch(e) { alert("Error: " + e.message); }
+}
+
+// Simple fetch that handles 204 No Content without throwing
+async function dbFetchSimple(path, opts={}) {
+  const r = await fetch(SUPA_URL+"/rest/v1/"+path, { headers: HEADERS, ...opts });
+  if (!r.ok) { const e = await r.text(); throw new Error(e); }
+  return null;
 }
 
 // ── DETAIL ──────────────────────────────────────────────────────────────────
@@ -712,9 +752,13 @@ async function refreshOrder(id) {
   try {
     const rows = await dbFetch(`orders?id=eq.${id}&select=*`);
     if (rows && rows.length > 0) {
-      allOrders = allOrders.map(o => o.id === id ? rows[0] : o);
+      // Replace the order in memory with fresh data from Supabase
+      const fresh = rows[0];
+      allOrders = allOrders.map(o => o.id === id ? fresh : o);
       renderStats();
       renderTable();
+      // If this order is currently open in detail view, refresh it too
+      if (viewingId === id) renderDetail();
     }
   } catch(e) { console.error("refreshOrder error:", e); }
 }

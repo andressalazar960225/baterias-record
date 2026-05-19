@@ -938,44 +938,110 @@ function sendReviewRequest() {
 }
 
 // ── LABEL / QR ───────────────────────────────────────────────────────────────
-function printLabel() {
+async function printLabel() {
   const o = allOrders.find(x=>x.id===viewingId);
   if (!o) return;
-  const scanURL = `${location.origin}${location.pathname.replace('index.html','')}scan.html?id=${o.id}`;
-  const ordLabel = o.order_num ? 'ORD-'+String(o.order_num).padStart(4,'0') : '#'+o.id;
-  const qrAPI = `https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=${encodeURIComponent(scanURL)}&margin=4`;
-  const win = window.open("","_blank","width=400,height=500");
-  win.document.write(`<!DOCTYPE html><html><head>
-  <title>Etiqueta ${ordLabel}</title>
-  <style>
-    *{box-sizing:border-box;margin:0;padding:0;}
-    body{background:#f0f0f0;display:flex;flex-direction:column;align-items:center;justify-content:center;min-height:100vh;font-family:Arial,sans-serif;gap:12px;}
-    .label{background:#fff;border:1.5px solid #111;width:50mm;height:50mm;padding:3mm;display:flex;flex-direction:column;align-items:center;justify-content:space-between;text-align:center;}
-    .top{font-size:5pt;font-weight:900;color:#cc0000;letter-spacing:1px;text-transform:uppercase;line-height:1.2;}
-    .qr{width:26mm;height:26mm;}
-    .order{background:#111;color:#f5c518;font-size:7pt;font-weight:900;padding:1.5mm 3mm;border-radius:2px;width:100%;}
-    .info{font-size:4.5pt;color:#333;line-height:1.4;width:100%;}
-    .scan{font-size:4pt;color:#888;border-top:0.5px dashed #ccc;padding-top:1.5mm;width:100%;}
-    .btn{background:#111;color:#f5c518;border:none;padding:8px 20px;border-radius:6px;cursor:pointer;font-weight:700;font-size:0.85rem;margin-top:4px;}
-    @media print{
-      @page{size:50mm 50mm;margin:0;}
-      body{background:#fff;min-height:unset;padding:0;gap:0;}
-      .btn{display:none;}
-      .label{border:none;width:50mm;height:50mm;}
-    }
-  </style></head>
-  <body>
-    <div class="label">
-      <div class="top">⚡ BATERÍAS RÉCORD<br>Battery Center</div>
-      <img class="qr" src="${qrAPI}" />
-      <div class="order">${ordLabel}</div>
-      <div class="info">${o.client||"—"} · ${o.brand||""} ${o.model||""}</div>
-      <div class="scan">📷 Escanear para ver estado</div>
-    </div>
-    <button class="btn" onclick="window.print()">🖨️ Imprimir etiqueta 50×50mm</button>
-  <script>setTimeout(()=>window.print(),800);<\/script>
-  </body></html>`);
-  win.document.close();
+
+  const ordLabel  = o.order_num ? 'ORD-'+String(o.order_num).padStart(4,'0') : '#'+o.id;
+  const scanURL   = `${location.origin}${location.pathname.replace('index.html','')}scan.html?id=${o.id}`;
+  // 50mm x 50mm at 300dpi = 591 x 591 px
+  const PX        = 591;
+  const qrSize    = 280;
+  const qrAPI     = `https://api.qrserver.com/v1/create-qr-code/?size=${qrSize}x${qrSize}&data=${encodeURIComponent(scanURL)}&margin=4&color=000000&bgcolor=ffffff`;
+
+  // Show loading toast
+  const toastEl = document.createElement("div");
+  toastEl.className = "success-toast";
+  toastEl.style.background = "#f5c518";
+  toastEl.style.color = "#000";
+  toastEl.textContent = "⏳ Generando etiqueta…";
+  document.body.appendChild(toastEl);
+
+  try {
+    // Load QR image
+    const qrImg = await new Promise((res, rej) => {
+      const img = new Image();
+      img.crossOrigin = "anonymous";
+      img.onload  = () => res(img);
+      img.onerror = () => rej(new Error("No se pudo cargar el QR"));
+      img.src = qrAPI;
+    });
+
+    // Draw label on canvas
+    const canvas  = document.createElement("canvas");
+    canvas.width  = PX;
+    canvas.height = PX;
+    const ctx     = canvas.getContext("2d");
+
+    // White background
+    ctx.fillStyle = "#ffffff";
+    ctx.fillRect(0, 0, PX, PX);
+
+    // Top red bar
+    ctx.fillStyle = "#cc0000";
+    ctx.fillRect(0, 0, PX, 62);
+
+    // Brand text in bar
+    ctx.fillStyle = "#ffffff";
+    ctx.font      = "bold 22px Arial";
+    ctx.textAlign = "center";
+    ctx.fillText("⚡ BATERÍAS RÉCORD", PX/2, 28);
+    ctx.font      = "16px Arial";
+    ctx.fillText("Battery Center", PX/2, 52);
+
+    // QR code centered
+    const qrX = (PX - qrSize) / 2;
+    ctx.drawImage(qrImg, qrX, 72, qrSize, qrSize);
+
+    // Order number bar
+    ctx.fillStyle = "#111111";
+    ctx.fillRect(0, 368, PX, 72);
+    ctx.fillStyle = "#f5c518";
+    ctx.font      = "bold 32px Arial";
+    ctx.textAlign = "center";
+    ctx.fillText(ordLabel, PX/2, 414);
+
+    // Client and battery info
+    ctx.fillStyle = "#111111";
+    ctx.font      = "bold 19px Arial";
+    ctx.textAlign = "center";
+    const clientText = (o.client||"—").substring(0, 28);
+    ctx.fillText(clientText, PX/2, 464);
+
+    ctx.fillStyle = "#555555";
+    ctx.font      = "17px Arial";
+    const battText = `${o.brand||""} ${o.model||""}`.trim().substring(0, 30);
+    ctx.fillText(battText, PX/2, 490);
+
+    // Bottom scan instruction
+    ctx.fillStyle = "#888888";
+    ctx.font      = "14px Arial";
+    ctx.fillText("Escanear QR para ver estado", PX/2, 530);
+
+    // Border
+    ctx.strokeStyle = "#cccccc";
+    ctx.lineWidth   = 3;
+    ctx.strokeRect(2, 2, PX-4, PX-4);
+
+    // Download as PNG
+    const link    = document.createElement("a");
+    link.download = `etiqueta-${ordLabel}.png`;
+    link.href     = canvas.toDataURL("image/png");
+    link.click();
+
+    toastEl.remove();
+    // Show instructions
+    const inst = document.createElement("div");
+    inst.className = "success-toast";
+    inst.style.cssText = "background:#1e3a5f;color:#93c5fd;white-space:normal;max-width:320px;text-align:center;line-height:1.5;padding:14px 20px;font-size:0.82rem;";
+    inst.innerHTML = `✅ <strong>Imagen descargada</strong><br>Ábrela desde la app Phomemo en tu celular y selecciona imprimir en 50×50mm`;
+    document.body.appendChild(inst);
+    setTimeout(()=>inst.remove(), 5000);
+
+  } catch(e) {
+    toastEl.remove();
+    alert("Error al generar etiqueta: " + e.message);
+  }
 }
 
 // ── FORM PHOTO ────────────────────────────────────────────────────────────────
